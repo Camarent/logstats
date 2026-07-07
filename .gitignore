@@ -21,7 +21,6 @@ htmlcov/
 .hypothesis/
 
 # Editors / OS
-.vscode/
 .idea/
 *.swp
 .DS_Store

@@ -1,0 +1,7 @@
+[project]
+name = "logstats"
+version = "0.1.0"
+description = "A small CLI tool that computes statistics from log files"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
