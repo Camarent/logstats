@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 
 
@@ -8,7 +9,7 @@ def file_len(filename: Path) -> int:
 
 
 def main():
-    filename = Path("README.md")
+    filename = Path(sys.argv[1])
     line_count = file_len(filename)
     print("File line count is", line_count)
 
