@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
 
@@ -14,13 +15,19 @@ class LogType(Enum):
 
 @dataclass
 class LogEntry:
-    text: str
-    char_count: int = field(init=False)
-    log_type: LogType = field(init=False)
+    log_line: str
+    message: str = field(init=False)
+    level: LogType = field(init=False)
+    timestamp: datetime = field(init=False)
 
-    def __post_init__(self):
-        self.char_count = len(self.text)
-        self.log_type = next((lt for lt in LogType if lt.name in self.text), None)
+    def __post_init__(self) -> None:
+        log_split = self.log_line.split(maxsplit=2)
+        self.timestamp = datetime.fromisoformat(log_split[0])
+        self.level = LogType[log_split[1]]
+        self.message = log_split[2].rstrip("\n")
+
+    def __str__(self) -> str:
+        return f"[{self.timestamp}] {self.level.name}: {self.message}"
 
 
 def file_len(filename: Path) -> int:
@@ -34,7 +41,7 @@ def parse_file(filename: Path, filter: LogType) -> list[LogEntry]:
     with filename.open("rt") as f:
         for line in f:
             parsed_line = parse(line)
-            if filter is None or parsed_line.log_type == filter:
+            if filter is None or parsed_line.level == filter:
                 logs.append(parsed_line)
         return logs
 
@@ -50,9 +57,10 @@ def parse(line: str) -> LogEntry:
     type=click.Choice(LogType, case_sensitive=True),
     help="filter by this log level",
 )
-def main(filename, level: LogType):
+def main(filename: str, level: LogType) -> None:
     logs = parse_file(Path(filename), level)
-    print("File line count is", len(logs))
+    for lt in logs:
+        print(lt)
 
 
 if __name__ == "__main__":
