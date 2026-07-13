@@ -14,3 +14,5 @@
 2026-07-13T10:33:19 WARNING Retrying upstream request (attempt 2/3)
 2026-07-13T10:52:03 DEBUG Garbage collection freed 128MB
 2026-07-13T11:04:27 INFO Shutting down gracefully
+2026-07-13T13:05:16 ERROR Database connection failed: timeout after 30s
+2026-07-14T18:05:16 ERROR Database connection failed: timeout after 30s

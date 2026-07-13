@@ -1,3 +1,4 @@
+from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -50,17 +51,54 @@ def parse(line: str) -> LogEntry:
     return LogEntry(line)
 
 
+def top_output(logs: list[LogEntry], top: int, level: LogType) -> None:
+    messages = Counter((e.level, e.message) for e in logs)
+    scope = level.name.capitalize() if level else "All"
+    print(f"Top {top} {scope} messages:")
+    for (lvl, msg), n in messages.most_common(top):
+        print(f"    {n} x {lvl.name.capitalize()}: {msg}")
+
+
+def per_hour_output(logs: list[LogEntry], level: LogType) -> None:
+    messages = Counter((e.timestamp.date(), e.timestamp.hour) for e in logs)
+    print(f"{level.name.capitalize()} messages per hour:")
+    for (day, hour), n in sorted(messages.items()):
+        print(f"    {day} {hour:02d}:00     {n}")
+
+
+def regular_output(logs: list[LogEntry]) -> None:
+    for lt in logs:
+        print(lt)
+
+
 @click.command()
-@click.argument("filename")
+@click.argument(
+    "filename", type=click.Path(exists=True, dir_okay=False, path_type=Path)
+)
 @click.option(
     "--level",
     type=click.Choice(LogType, case_sensitive=True),
     help="filter by this log level",
 )
-def main(filename: str, level: LogType) -> None:
-    logs = parse_file(Path(filename), level)
-    for lt in logs:
-        print(lt)
+@click.option("--top", type=click.IntRange(min=1), help="show most common N messages")
+@click.option("--per-hour", is_flag=True, help="show per hour messages counts")
+def main(filename: Path, level: LogType, top: int | None, per_hour: bool) -> None:
+    """Read a log file and print or filter its entries.
+
+    FILENAME is the path to the log file to parse.
+    """
+    if top is not None and per_hour:
+        raise click.UsageError(
+            "--top and --per-hour can't be used together — pick one view."
+        )
+
+    logs = parse_file(filename, level)
+    if top is not None:
+        top_output(logs, top, level)
+    elif per_hour:
+        per_hour_output(logs, level)
+    else:
+        regular_output(logs)
 
 
 if __name__ == "__main__":
