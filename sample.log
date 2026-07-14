@@ -16,6 +16,3 @@
 2026-07-13T11:04:27 INFO Shutting down gracefully
 2026-07-13T13:05:16 ERROR Database connection failed: timeout after 30s
 2026-07-14T18:05:16 ERROR Database connection failed: timeout after 30s
-Exception lines
-2026-07-14T18:05:16 ERRORDatabase connection failed: timeout after 30s
-2026-07-3432:05:16 ERROR Database connection failed: timeout after 30s
