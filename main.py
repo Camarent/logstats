@@ -7,11 +7,19 @@ from pathlib import Path
 import click
 
 
+class InvalidFormat(Exception):
+    pass
+
+
 class LogType(Enum):
     DEBUG = 0
     INFO = 1
     WARNING = 2
     ERROR = 3
+
+
+def get_name_capitalize(level: LogType) -> str:
+    return level.name.capitalize() if level else "All"
 
 
 @dataclass
@@ -23,6 +31,9 @@ class LogEntry:
 
     def __post_init__(self) -> None:
         log_split = self.log_line.split(maxsplit=2)
+        if len(log_split) != 3:
+            raise InvalidFormat(f"Log line has invalid format: {self.log_line}")
+
         self.timestamp = datetime.fromisoformat(log_split[0])
         self.level = LogType[log_split[1]]
         self.message = log_split[2].rstrip("\n")
@@ -42,18 +53,25 @@ def parse_file(filename: Path, filter: LogType) -> list[LogEntry]:
     with filename.open("rt") as f:
         for line in f:
             parsed_line = parse(line)
-            if filter is None or parsed_line.level == filter:
+            if parsed_line is not None and (
+                filter is None or parsed_line.level == filter
+            ):
                 logs.append(parsed_line)
         return logs
 
 
-def parse(line: str) -> LogEntry:
-    return LogEntry(line)
+def parse(line: str) -> LogEntry | None:
+    try:
+        return LogEntry(line)
+    except InvalidFormat as ex:
+        print(ex)
+    except (ValueError, KeyError) as gex:
+        print(f'Exception "{gex}" was raised for line "{line}"')
 
 
 def top_output(logs: list[LogEntry], top: int, level: LogType) -> None:
     messages = Counter((e.level, e.message) for e in logs)
-    scope = level.name.capitalize() if level else "All"
+    scope = get_name_capitalize(level)
     print(f"Top {top} {scope} messages:")
     for (lvl, msg), n in messages.most_common(top):
         print(f"    {n} x {lvl.name.capitalize()}: {msg}")
@@ -61,7 +79,8 @@ def top_output(logs: list[LogEntry], top: int, level: LogType) -> None:
 
 def per_hour_output(logs: list[LogEntry], level: LogType) -> None:
     messages = Counter((e.timestamp.date(), e.timestamp.hour) for e in logs)
-    print(f"{level.name.capitalize()} messages per hour:")
+    scope = get_name_capitalize(level)
+    print(f"{scope} messages per hour:")
     for (day, hour), n in sorted(messages.items()):
         print(f"    {day} {hour:02d}:00     {n}")
 
@@ -93,6 +112,10 @@ def main(filename: Path, level: LogType, top: int | None, per_hour: bool) -> Non
         )
 
     logs = parse_file(filename, level)
+    if len(logs) == 0:
+        print("No logs avaiable with the selected filters.")
+        return
+
     if top is not None:
         top_output(logs, top, level)
     elif per_hour:
