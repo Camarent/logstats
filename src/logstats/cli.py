@@ -1,9 +1,10 @@
+import logging
 from pathlib import Path
 
 import click
 
-from core import main
-from data import LogType
+from logstats.core import main
+from logstats.data import LogType
 
 
 @click.command()
@@ -17,8 +18,9 @@ from data import LogType
 )
 @click.option("--top", type=click.IntRange(min=1), help="show most common N messages")
 @click.option("--per-hour", is_flag=True, help="show per hour messages counts")
+@click.option("-v", "--verbose", is_flag=True, help="show diagnostic logs")
 def parse_aguments(
-    filename: Path, level: LogType, top: int | None, per_hour: bool
+    filename: Path, level: LogType, top: int | None, per_hour: bool, verbose: bool
 ) -> None:
     """Read a log file and print or filter its entries.
 
@@ -29,8 +31,7 @@ def parse_aguments(
             "--top and --per-hour can't be used together — pick one view."
         )
 
+    logging_level = logging.DEBUG if verbose else logging.WARNING
+    logging.basicConfig(level=logging_level, format="%(levelname)s:%(message)s")
+
     main(filename, level, top, per_hour)
-
-
-if __name__ == "__main__":
-    parse_aguments()

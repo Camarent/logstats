@@ -3,8 +3,8 @@ from unittest.mock import mock_open
 
 import pytest
 
-from data import LogType
-from parser import parse_file, parse_line
+from logstats.data import LogType
+from logstats.parser import parse_file, parse_line
 
 
 @pytest.mark.parametrize(

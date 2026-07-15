@@ -1,8 +1,11 @@
+import logging
 from pathlib import Path
 
-from data import LogEntry, LogType, Query
-from parser import parse_file
-from report import PerHourReport, RegularReport, Report, TopReport
+from logstats.data import LogEntry, LogType, Query
+from logstats.parser import parse_file
+from logstats.report import PerHourReport, RegularReport, Report, TopReport
+
+logger = logging.getLogger("logstats_data")
 
 
 def run(logs: list[LogEntry], query: Query) -> Report:
@@ -14,11 +17,11 @@ def run(logs: list[LogEntry], query: Query) -> Report:
         return RegularReport(logs, query)
 
 
-def main(filename: Path, level: LogType, top: int, per_hour: bool) -> None:
+def main(filename: Path, level: LogType | None, top: int, per_hour: bool) -> None:
     query = Query(filename, level, top, per_hour)
     logs = parse_file(query.filename, query.level)
     if len(logs) == 0:
-        print("No logs avaiable with the selected filters.")
+        logger.info("No logs available with the selected filters.")
         return
     report = run(logs, query)
     print(report)

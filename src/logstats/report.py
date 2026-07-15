@@ -1,6 +1,6 @@
 from collections import Counter
 
-from data import LogEntry, Query, get_name_capitalize
+from logstats.data import LogEntry, Query, get_name_capitalize
 
 
 class Report:

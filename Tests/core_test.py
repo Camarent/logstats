@@ -1,8 +1,8 @@
 import pytest
 
-from core import run
-from data import Query
-from report import PerHourReport, RegularReport, TopReport
+from logstats.core import run
+from logstats.data import Query
+from logstats.report import PerHourReport, RegularReport, TopReport
 
 
 @pytest.mark.parametrize(

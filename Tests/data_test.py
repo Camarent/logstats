@@ -2,7 +2,7 @@ from datetime import datetime
 
 import pytest
 
-from data import InvalidLogFormat, LogEntry, LogType, get_name_capitalize
+from logstats.data import InvalidLogFormat, LogEntry, LogType, get_name_capitalize
 
 
 @pytest.mark.parametrize(
@@ -42,5 +42,5 @@ def test_invalid_format(bad_line: str):
     ],
 )
 def test_invalid_enum_or_data_formats(bad_line: str):
-    with pytest.raises(Exception):
+    with pytest.raises((ValueError, KeyError)):
         LogEntry(bad_line)

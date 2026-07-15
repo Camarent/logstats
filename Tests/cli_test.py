@@ -1,6 +1,6 @@
 from click.testing import CliRunner
 
-from cli import parse_aguments
+from logstats.cli import parse_aguments
 
 
 def test_cli_doesnt_allow_multiple_reports(tmp_path):

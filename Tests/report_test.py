@@ -1,7 +1,7 @@
 import pytest
 
-from data import LogEntry, Query
-from report import PerHourReport, RegularReport, Report, TopReport
+from logstats.data import LogEntry, Query
+from logstats.report import PerHourReport, RegularReport, Report, TopReport
 
 
 class StubReport(Report):
