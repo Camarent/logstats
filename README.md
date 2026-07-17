@@ -1,5 +1,7 @@
 # logstats
 
+[![CI](https://github.com/Camarent/logstats/actions/workflows/code_quality_check.yml/badge.svg)](https://github.com/Camarent/logstats/actions/workflows/code_quality_check.yml)
+
 A small, well-tested command-line tool that computes statistics from log files —
 line counts, top-N error messages, requests-per-hour, and level filtering.
 
@@ -73,7 +75,7 @@ Add `--verbose` to see diagnostic logs (malformed lines, empty results) on stder
 
 ## Tech
 
-Python 3.12+ · [`uv`](https://docs.astral.sh/uv/) · `click` · `pytest` · type hints & dataclasses throughout.
+Python 3.12+ · [`uv`](https://docs.astral.sh/uv/) · `click` · `pytest` · [`ruff`](https://docs.astral.sh/ruff/) · [`mypy`](https://mypy-lang.org/) · type hints & dataclasses throughout.
 
 ## License
 
