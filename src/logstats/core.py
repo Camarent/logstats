@@ -17,7 +17,9 @@ def run(logs: list[LogEntry], query: Query) -> Report:
         return RegularReport(logs, query)
 
 
-def main(filename: Path, level: LogType | None, top: int, per_hour: bool) -> None:
+def main(
+    filename: Path, level: LogType | None, top: int | None, per_hour: bool
+) -> None:
     query = Query(filename, level, top, per_hour)
     logs = parse_file(query.filename, query.level)
     if len(logs) == 0:

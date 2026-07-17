@@ -19,3 +19,4 @@ def parse_line(line: str, level: LogType | None) -> LogEntry | None:
         logger.warning(ex)
     except (ValueError, KeyError) as gex:
         logger.warning(f'Exception "{gex}" was raised for line "{line}"')
+    return None

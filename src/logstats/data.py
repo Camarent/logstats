@@ -15,7 +15,7 @@ class LogType(Enum):
     ERROR = 3
 
 
-def get_name_capitalize(level: LogType) -> str:
+def get_name_capitalize(level: LogType | None) -> str:
     return level.name.capitalize() if level else "All"
 
 
