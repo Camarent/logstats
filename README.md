@@ -1,6 +1,7 @@
 # logstats
 
 [![CI](https://github.com/Camarent/logstats/actions/workflows/code_quality_check.yml/badge.svg)](https://github.com/Camarent/logstats/actions/workflows/code_quality_check.yml)
+[![coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/Camarent/6d7c1f051b41f3084116ccc594267742/raw/logstats-coverage.json)](https://github.com/Camarent/logstats/actions/workflows/code_quality_check.yml)
 
 A small, well-tested command-line tool that computes statistics from log files —
 line counts, top-N error messages, requests-per-hour, and level filtering.

@@ -10,4 +10,16 @@ jobs:
             - run: uv run ruff check
             - run: uv run ruff format --check
             - run: uv run mypy
-            - run: uv run pytest
+            - run: uv run pytest --cov=src/logstats --cov-report=term-missing --cov-fail-under=95
+            - run: echo "COVERAGE=$(uv run coverage report --format=total)" >> $GITHUB_ENV
+            - uses: Schneegans/dynamic-badges-action@v1.9.0
+              if: github.ref_name == github.event.repository.default_branch
+              with:
+                  auth: ${{ secrets.GIST_TOKEN }}
+                  gistID: 6d7c1f051b41f3084116ccc594267742
+                  filename: logstats-coverage.json
+                  label: coverage
+                  message: ${{ env.COVERAGE }}%
+                  valColorRange: ${{ env.COVERAGE }}
+                  minColorRange: 50
+                  maxColorRange: 100
