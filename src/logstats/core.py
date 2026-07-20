@@ -1,14 +1,15 @@
 import logging
+from collections.abc import Sequence
 from pathlib import Path
 
 from logstats.data import LogEntry, LogType, Query
 from logstats.parser import parse_file
 from logstats.report import PerHourReport, RegularReport, Report, TopReport
 
-logger = logging.getLogger("logstats_data")
+logger = logging.getLogger(__name__)
 
 
-def run(logs: list[LogEntry], query: Query) -> Report:
+def run(logs: Sequence[LogEntry], query: Query) -> Report:
     if query.top is not None:
         return TopReport(logs, query)
     elif query.per_hour:

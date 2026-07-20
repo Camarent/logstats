@@ -1,18 +1,20 @@
+from abc import ABC, abstractmethod
 from collections import Counter
+from collections.abc import Sequence
 
 from logstats.data import LogEntry, Query, get_name_capitalize
 
 
-class Report:
-    logs: list[LogEntry]
+class Report(ABC):
+    logs: Sequence[LogEntry]
     query: Query
 
-    def __init__(self, logs: list[LogEntry], query: Query):
+    def __init__(self, logs: Sequence[LogEntry], query: Query):
         self.logs = logs
         self.query = query
 
-    def build(self) -> list[str]:
-        raise NotImplementedError
+    @abstractmethod
+    def build(self) -> list[str]: ...
 
     def __str__(self) -> str:
         return "\n".join(self.build())

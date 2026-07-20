@@ -16,7 +16,7 @@ class LogType(Enum):
 
 
 def get_name_capitalize(level: LogType | None) -> str:
-    return level.name.capitalize() if level else "All"
+    return level.name.capitalize() if level is not None else "All"
 
 
 @dataclass

@@ -20,7 +20,11 @@ from logstats.data import LogType
 @click.option("--per-hour", is_flag=True, help="show per hour messages counts")
 @click.option("-v", "--verbose", is_flag=True, help="show diagnostic logs")
 def parse_aguments(
-    filename: Path, level: LogType, top: int | None, per_hour: bool, verbose: bool
+    filename: Path,
+    level: LogType | None,
+    top: int | None,
+    per_hour: bool,
+    verbose: bool,
 ) -> None:
     """Read a log file and print or filter its entries.
 

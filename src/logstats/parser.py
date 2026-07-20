@@ -3,7 +3,7 @@ from pathlib import Path
 
 from logstats.data import InvalidLogFormat, LogEntry, LogType
 
-logger = logging.getLogger("logstats_parser")
+logger = logging.getLogger(__name__)
 
 
 def parse_file(filename: Path, level: LogType | None) -> list[LogEntry]:

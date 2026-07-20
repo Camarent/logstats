@@ -18,6 +18,10 @@ logstats="logstats.cli:parse_aguments"
 [tool.pytest.ini_options]
 testpaths = ["Tests"]
 
+[tool.mypy]
+files = ["src"]
+strict = true
+
 [dependency-groups]
 dev = [
     "mypy>=2.3.0",
