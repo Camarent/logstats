@@ -19,11 +19,17 @@ logstats="logstats.cli:parse_aguments"
 testpaths = ["Tests"]
 
 [tool.mypy]
-files = ["src"]
+files = ["src", "Tests"]
 strict = true
+
+[[tool.mypy.overrides]]
+module = "Tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
 
 [dependency-groups]
 dev = [
+    "hypothesis>=6.161.0",
     "mypy>=2.3.0",
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",

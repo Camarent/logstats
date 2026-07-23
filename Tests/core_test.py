@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from logstats.core import run
@@ -8,10 +10,10 @@ from logstats.report import PerHourReport, RegularReport, TopReport
 @pytest.mark.parametrize(
     "query, report_type",
     [
-        (Query("", None, 1, False), TopReport),
-        (Query("", None, None, True), PerHourReport),
-        (Query("", None, None, False), RegularReport),
+        (Query(Path(""), None, 1, False), TopReport),
+        (Query(Path(""), None, None, True), PerHourReport),
+        (Query(Path(""), None, None, False), RegularReport),
     ],
 )
 def test_run_output_correct_report(query: Query, report_type: type):
-    assert type(run(None, query)) is report_type
+    assert type(run([], query)) is report_type

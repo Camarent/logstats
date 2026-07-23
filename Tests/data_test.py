@@ -1,16 +1,19 @@
 from datetime import datetime
 
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
 
 from logstats.data import InvalidLogFormat, LogEntry, LogType, get_name_capitalize
 
 
-@pytest.mark.parametrize(
-    "test_input,expected",
-    [(LogType.ERROR, "Error"), (LogType.DEBUG, "Debug"), (None, "All")],
-)
-def test_get_name_capitalize(test_input, expected):
-    assert get_name_capitalize(test_input) == expected
+@given(level=st.sampled_from(LogType))
+def test_get_name_capitalize_when_enum_values_used(level):
+    assert get_name_capitalize(level) == level.name.capitalize()
+
+
+def test_get_name_capitalize_when_none_used():
+    assert get_name_capitalize(None) == "All"
 
 
 def test_produce_log_entry():

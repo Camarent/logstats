@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from logstats.data import LogEntry, Query
@@ -10,7 +12,7 @@ class StubReport(Report):
 
 
 def test_report_str():
-    assert str(StubReport([], None)) == "a\nb"
+    assert str(StubReport([], Query(Path(""), None, 1, False))) == "a\nb"
 
 
 @pytest.fixture
@@ -29,9 +31,12 @@ def sample_logs():
 @pytest.mark.parametrize(
     "query,expected",
     [
-        (Query("", None, 1, False), ["Top 1 All messages:", "    4 x Error: Message"]),
         (
-            Query("", None, 2, False),
+            Query(Path(""), None, 1, False),
+            ["Top 1 All messages:", "    4 x Error: Message"],
+        ),
+        (
+            Query(Path(""), None, 2, False),
             [
                 "Top 2 All messages:",
                 "    4 x Error: Message",
@@ -48,7 +53,7 @@ def test_top_report(sample_logs, query: Query, expected: list[str]):
     "query,expected",
     [
         (
-            Query("", None, None, True),
+            Query(Path(""), None, None, True),
             [
                 "All messages per hour:",
                 "    2026-07-13 13:00     5",
@@ -63,5 +68,5 @@ def test_per_hour_report(sample_logs, query: Query, expected: list[str]):
 
 
 def test_regular_report(sample_logs):
-    result = RegularReport(sample_logs, Query("", None, None, False)).build()
+    result = RegularReport(sample_logs, Query(Path(""), None, None, False)).build()
     assert len(result) == len(sample_logs)
