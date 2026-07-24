@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from pathlib import Path
 
 
 class InvalidLogFormat(Exception):
@@ -40,8 +39,8 @@ class LogEntry:
 
 
 @dataclass(frozen=True)
-class Query:
-    filename: Path
+class ReportRequest:
     level: LogType | None
     top: int | None
     per_hour: bool
+    combined_report: bool

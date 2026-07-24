@@ -1,5 +1,5 @@
 import logging
-from pathlib import Path
+from collections.abc import Sequence
 
 import click
 
@@ -8,9 +8,7 @@ from logstats.data import LogType
 
 
 @click.command()
-@click.argument(
-    "filename", type=click.Path(exists=True, dir_okay=False, path_type=Path)
-)
+@click.argument("sources", nargs=-1, required=True)
 @click.option(
     "--level",
     type=click.Choice(LogType, case_sensitive=True),
@@ -20,7 +18,7 @@ from logstats.data import LogType
 @click.option("--per-hour", is_flag=True, help="show per hour messages counts")
 @click.option("-v", "--verbose", is_flag=True, help="show diagnostic logs")
 def parse_aguments(
-    filename: Path,
+    sources: Sequence[str],
     level: LogType | None,
     top: int | None,
     per_hour: bool,
@@ -38,4 +36,4 @@ def parse_aguments(
     logging_level = logging.DEBUG if verbose else logging.WARNING
     logging.basicConfig(level=logging_level, format="%(levelname)s:%(message)s")
 
-    main(filename, level, top, per_hour)
+    main(sources, level, top, per_hour)

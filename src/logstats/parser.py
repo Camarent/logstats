@@ -1,22 +1,27 @@
+import asyncio
 import logging
-from pathlib import Path
+from collections.abc import Sequence
 
-from logstats.data import InvalidLogFormat, LogEntry, LogType
+import httpx
+
+from logstats.data import LogType
+from logstats.source_parser import FetchedSource, fetch_source
 
 logger = logging.getLogger(__name__)
 
 
-def parse_file(filename: Path, level: LogType | None) -> list[LogEntry]:
-    with filename.open("rt") as f:
-        return [entry for lt in f if (entry := parse_line(lt, level)) is not None]
+async def fetch(sources: Sequence[str], level: LogType | None) -> list[FetchedSource]:
+    async with httpx.AsyncClient() as client:
+        return await collect(sources, level, client)
 
 
-def parse_line(line: str, level: LogType | None) -> LogEntry | None:
-    try:
-        entry = LogEntry(line.rstrip("\n"))
-        return entry if level is None or entry.level == level else None
-    except InvalidLogFormat as ex:
-        logger.warning(ex)
-    except (ValueError, KeyError) as gex:
-        logger.warning(f'Exception "{gex}" was raised for line "{line}"')
-    return None
+async def collect(
+    sources: Sequence[str], level: LogType | None, client: httpx.AsyncClient
+) -> list[FetchedSource]:
+    results: list[asyncio.Task[FetchedSource]] = []
+    async with asyncio.TaskGroup() as group:
+        for s in sources:
+            task = fetch_source(s, level, client)
+            if task is not None:
+                results.append(group.create_task(task))
+    return [t.result() for t in results]

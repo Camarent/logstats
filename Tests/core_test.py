@@ -1,19 +1,13 @@
-from pathlib import Path
+import logging
 
-import pytest
-
-from logstats.core import run
-from logstats.data import Query
-from logstats.report import PerHourReport, RegularReport, TopReport
+from logstats.core import main
 
 
-@pytest.mark.parametrize(
-    "query, report_type",
-    [
-        (Query(Path(""), None, 1, False), TopReport),
-        (Query(Path(""), None, None, True), PerHourReport),
-        (Query(Path(""), None, None, False), RegularReport),
-    ],
-)
-def test_run_output_correct_report(query: Query, report_type: type):
-    assert type(run([], query)) is report_type
+def test_no_source_fetched(monkeypatch, caplog):
+    async def fake_fetch(sources, level):
+        return []
+
+    monkeypatch.setattr("logstats.core.fetch", fake_fetch)
+    with caplog.at_level(logging.WARNING):
+        main(["test.log"], None, None, False)
+    assert "No available sources" in caplog.text

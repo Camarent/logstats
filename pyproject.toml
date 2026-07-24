@@ -5,7 +5,9 @@ description = "A small CLI tool that computes statistics from log files"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "aiofiles>=25.1.0",
     "click>=8.4.2",
+    "httpx>=0.28.1",
 ]
 
 [build-system]
@@ -34,5 +36,6 @@ dev = [
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
     "ruff>=0.15.22",
+    "types-aiofiles>=25.1.0.20260518",
 ]
 
