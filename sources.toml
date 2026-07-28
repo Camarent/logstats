@@ -1,0 +1,3 @@
+[sources]
+app1 = "http://logs.internal/app1.log"
+app2 = "http://logs.internal/app2.log"

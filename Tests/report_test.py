@@ -1,17 +1,19 @@
 import pytest
 
 from logstats.data import LogEntry, ReportRequest
+from logstats.per_hour_stats import HourlyStats, compute_per_hour
 from logstats.report import (
-    PerHourReport,
-    RegularReport,
-    Report,
-    TopReport,
-    create_report,
+    PerHourReportFormatted,
+    RegularReportFormatted,
+    ReportFormatted,
+    TopReportFormatted,
+    create_reports,
 )
 from logstats.source_parser import FetchedSource
+from logstats.top_stats import TopStats, compute_top
 
 
-class StubReport(Report):
+class StubReport(ReportFormatted):
     def build_header(self):
         return ""
 
@@ -20,7 +22,7 @@ class StubReport(Report):
 
 
 def test_report_str():
-    assert str(StubReport([], ReportRequest(None, 1, False, True))) == "a\nb"
+    assert str(StubReport()) == "\na\nb"
 
 
 @pytest.fixture
@@ -53,7 +55,9 @@ def sample_logs():
     ],
 )
 def test_top_report(sample_logs, req: ReportRequest, expected: list[str]):
-    assert TopReport(sample_logs, req).build() == expected
+    assert req.top is not None
+    stats = compute_top(sample_logs, None, req.top, "All")
+    assert TopReportFormatted(stats).build() == expected
 
 
 @pytest.mark.parametrize(
@@ -70,36 +74,41 @@ def test_top_report(sample_logs, req: ReportRequest, expected: list[str]):
     ],
 )
 def test_per_hour_report(sample_logs, req: ReportRequest, expected: list[str]):
-    assert PerHourReport(sample_logs, req).build() == expected
+    stats = compute_per_hour(sample_logs, None, "All")
+    assert PerHourReportFormatted(stats).build() == expected
 
 
 def test_regular_report(sample_logs):
-    result = RegularReport(sample_logs, ReportRequest(None, None, False, True)).build()
+    result = RegularReportFormatted(sample_logs).build()
     assert len(result) == len(sample_logs)
 
 
 @pytest.mark.parametrize(
     "req, report_type",
     [
-        (ReportRequest(None, 1, False, False), TopReport),
-        (ReportRequest(None, None, True, False), PerHourReport),
-        (ReportRequest(None, None, False, False), RegularReport),
+        (ReportRequest(None, 1, False, False), TopReportFormatted),
+        (ReportRequest(None, None, True, False), PerHourReportFormatted),
+        (ReportRequest(None, None, False, False), RegularReportFormatted),
     ],
 )
 def test_run_output_correct_report(req: ReportRequest, report_type: type):
-    assert type(create_report(FetchedSource([], ""), req)) is report_type
+    reports = create_reports([FetchedSource([], "")], req)
+    assert all(type(r) is report_type for r in reports)
 
 
 @pytest.mark.parametrize(
     "report, expected",
     [
         (
-            PerHourReport([], ReportRequest(None, None, True, True)),
+            PerHourReportFormatted(HourlyStats("", None, 0, [])),
             "All messages per hour:",
         ),
-        (TopReport([], ReportRequest(None, 1, False, True)), "Top 1 All messages:"),
-        (RegularReport([], ReportRequest(None, None, False, True)), ""),
+        (
+            TopReportFormatted(TopStats("", 1, None, 0, [])),
+            "Top 1 All messages:",
+        ),
+        (RegularReportFormatted([]), ""),
     ],
 )
-def test_report_headers(report: Report, expected: str):
+def test_report_headers(report: ReportFormatted, expected: str):
     assert report.build_header() == expected

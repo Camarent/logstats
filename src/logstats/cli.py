@@ -17,12 +17,16 @@ from logstats.data import LogType
 @click.option("--top", type=click.IntRange(min=1), help="show most common N messages")
 @click.option("--per-hour", is_flag=True, help="show per hour messages counts")
 @click.option("-v", "--verbose", is_flag=True, help="show diagnostic logs")
+@click.option(
+    "-c", "combined", is_flag=True, help="combine reports from different sources"
+)
 def parse_aguments(
     sources: Sequence[str],
     level: LogType | None,
     top: int | None,
     per_hour: bool,
     verbose: bool,
+    combined: bool,
 ) -> None:
     """Read a log file and print or filter its entries.
 
@@ -36,4 +40,4 @@ def parse_aguments(
     logging_level = logging.DEBUG if verbose else logging.WARNING
     logging.basicConfig(level=logging_level, format="%(levelname)s:%(message)s")
 
-    main(sources, level, top, per_hour)
+    main(sources, level, top, per_hour, combined)
