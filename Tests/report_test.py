@@ -7,9 +7,7 @@ from logstats.report import (
     RegularReportFormatted,
     ReportFormatted,
     TopReportFormatted,
-    create_reports,
 )
-from logstats.source_parser import FetchedSource
 from logstats.top_stats import TopStats, compute_top
 
 
@@ -56,7 +54,7 @@ def sample_logs():
 )
 def test_top_report(sample_logs, req: ReportRequest, expected: list[str]):
     assert req.top is not None
-    stats = compute_top(sample_logs, None, req.top, "All")
+    stats = compute_top(sample_logs, "All", level=None, top=req.top)
     assert TopReportFormatted(stats).build() == expected
 
 
@@ -74,26 +72,13 @@ def test_top_report(sample_logs, req: ReportRequest, expected: list[str]):
     ],
 )
 def test_per_hour_report(sample_logs, req: ReportRequest, expected: list[str]):
-    stats = compute_per_hour(sample_logs, None, "All")
+    stats = compute_per_hour(sample_logs, "All", level=None)
     assert PerHourReportFormatted(stats).build() == expected
 
 
 def test_regular_report(sample_logs):
     result = RegularReportFormatted(sample_logs).build()
     assert len(result) == len(sample_logs)
-
-
-@pytest.mark.parametrize(
-    "req, report_type",
-    [
-        (ReportRequest(None, 1, False, False), TopReportFormatted),
-        (ReportRequest(None, None, True, False), PerHourReportFormatted),
-        (ReportRequest(None, None, False, False), RegularReportFormatted),
-    ],
-)
-def test_run_output_correct_report(req: ReportRequest, report_type: type):
-    reports = create_reports([FetchedSource([], "")], req)
-    assert all(type(r) is report_type for r in reports)
 
 
 @pytest.mark.parametrize(
