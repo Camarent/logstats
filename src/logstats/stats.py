@@ -1,7 +1,11 @@
 from collections.abc import Callable, Sequence
+from dataclasses import replace
 from typing import TypeVar
 
-from logstats.data import LogEntry
+import httpx
+
+from logstats.data import LogEntry, LogType
+from logstats.parser import collect
 from logstats.source_parser import FetchedSource
 
 T = TypeVar("T")
@@ -20,3 +24,15 @@ def build_stats(
         return [compute(merge_entries(sources), "All")]
     else:
         return [compute(fs.log_lines, fs.source) for fs in sources]
+
+
+async def gather_stats(
+    sources: dict[str, str],
+    level: LogType | None,
+    combined: bool,
+    client: httpx.AsyncClient,
+    compute: Callable[[Sequence[LogEntry], str], T],
+) -> tuple[list[T], list[FetchedSource]]:
+    fetched = await collect(list(sources.values()), level, client)
+    fetched = [replace(fs, source=name) for name, fs in zip(sources, fetched)]
+    return build_stats(fetched, combined, compute), fetched

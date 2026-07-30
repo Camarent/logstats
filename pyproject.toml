@@ -22,6 +22,8 @@ logstats="logstats.cli:parse_aguments"
 
 [tool.pytest.ini_options]
 testpaths = ["Tests"]
+addopts = "--cov=logstats --cov-report=term-missing"
+
 
 [tool.mypy]
 files = ["src", "Tests"]
