@@ -1,19 +1,13 @@
 from abc import ABC, abstractmethod
-from collections import Counter
 from collections.abc import Sequence
+from dataclasses import dataclass
 
-from logstats.data import LogEntry, ReportRequest, get_name_capitalize
-from logstats.source_parser import FetchedSource
+from logstats.data import LogEntry, get_name_capitalize
+from logstats.per_hour_stats import HourlyStats
+from logstats.top_stats import TopStats
 
 
-class Report(ABC):
-    logs: Sequence[LogEntry]
-    request: ReportRequest
-
-    def __init__(self, logs: Sequence[LogEntry], query: ReportRequest):
-        self.logs = logs
-        self.request = query
-
+class ReportFormatted(ABC):
     @abstractmethod
     def build_header(self) -> str: ...
 
@@ -21,45 +15,43 @@ class Report(ABC):
     def build(self) -> list[str]: ...
 
     def __str__(self) -> str:
-        return self.build_header() + "\n".join(self.build())
+        return "\n".join([self.build_header(), *self.build()])
 
 
-class TopReport(Report):
+@dataclass
+class TopReportFormatted(ReportFormatted):
+    stats: TopStats
+
     def build_header(self) -> str:
-        return f"Top {self.request.top} {get_name_capitalize(self.request.level)} messages:"
+        return f"Top {self.stats.top} {get_name_capitalize(self.stats.level)} messages:"
 
     def build(self) -> list[str]:
-        messages = Counter((e.level, e.message) for e in self.logs)
         return [
-            f"    {n} x {lvl.name.capitalize()}: {msg}"
-            for (lvl, msg), n in messages.most_common(self.request.top)
+            f"    {m.count} x {m.level.name.capitalize()}: {m.message}"
+            for m in self.stats.messages
         ]
 
 
-class PerHourReport(Report):
+@dataclass
+class PerHourReportFormatted(ReportFormatted):
+    stats: HourlyStats
+
     def build_header(self) -> str:
-        return f"{get_name_capitalize(self.request.level)} messages per hour:"
+        return f"{get_name_capitalize(self.stats.level)} messages per hour:"
 
     def build(self) -> list[str]:
-        messages = Counter((e.timestamp.date(), e.timestamp.hour) for e in self.logs)
         return [
-            f"    {day} {hour:02d}:00     {n}"
-            for (day, hour), n in sorted(messages.items())
+            f"    {m.timestamp.date()} {m.timestamp.hour:02d}:00     {m.count}"
+            for m in self.stats.messages
         ]
 
 
-class RegularReport(Report):
+@dataclass
+class RegularReportFormatted(ReportFormatted):
+    logs: Sequence[LogEntry]
+
     def build_header(self) -> str:
         return ""
 
     def build(self) -> list[str]:
         return [str(lt) for lt in self.logs]
-
-
-def create_report(source: FetchedSource, query: ReportRequest) -> Report:
-    if query.top is not None:
-        return TopReport(source.log_lines, query)
-    elif query.per_hour:
-        return PerHourReport(source.log_lines, query)
-    else:
-        return RegularReport(source.log_lines, query)

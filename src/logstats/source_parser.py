@@ -29,11 +29,7 @@ async def fetch_source(
     source: str, level: LogType | None, client: httpx.AsyncClient
 ) -> FetchedSource:
     try:
-        lines = [
-            e
-            async for line in stream_lines(source, client)
-            if (e := parse_line(line, level)) is not None
-        ]
+        lines = [e async for e in stream_entries(source, level, client)]
         return FetchedSource(lines, source)
     except (httpx.HTTPError, OSError) as exc:
         logger.warning(f"failed to fetch {source}: {exc}")
@@ -47,6 +43,15 @@ def get_source_type(source: str) -> SourceType:
     if scheme == "":
         return SourceType.PATH
     return SourceType.UNKNOWN
+
+
+async def stream_entries(
+    source: str, level: LogType | None, client: httpx.AsyncClient
+) -> AsyncIterator[LogEntry]:
+    async for line in stream_lines(source, client):
+        entry = parse_line(line, level)
+        if entry is not None:
+            yield entry
 
 
 async def stream_lines(source: str, client: httpx.AsyncClient) -> AsyncIterator[str]:
