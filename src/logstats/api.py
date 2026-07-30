@@ -4,6 +4,7 @@ from typing import Annotated, cast
 
 import httpx
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request
+from fastapi.responses import StreamingResponse
 
 from logstats.config import Settings, load_settings
 from logstats.data import LogType
@@ -12,6 +13,7 @@ from logstats.schemas import (
     TopResponse,
     gather_per_hour_stats,
     gather_top_stats,
+    stream_all,
 )
 
 
@@ -74,3 +76,14 @@ async def get_per_hour(
     combined: bool = False,
 ) -> PerHourResponse:
     return await gather_per_hour_stats(urls, level, combined, client)
+
+
+@router.get("/regular")
+async def get_regular(
+    urls: Annotated[dict[str, str], Depends(get_urls)],
+    client: Annotated[httpx.AsyncClient, Depends(get_client)],
+    level: Annotated[LogType | None, Depends(parse_level)],
+) -> StreamingResponse:
+    return StreamingResponse(
+        stream_all(urls, level, client), media_type="text/event-stream"
+    )

@@ -1,15 +1,19 @@
-from collections.abc import Sequence
+import logging
+from collections.abc import AsyncIterator, Sequence
 from datetime import datetime
 from functools import partial
+from typing import Literal
 
 import httpx
 from pydantic import BaseModel
 
 from logstats.data import LogType, get_name_capitalize
 from logstats.per_hour_stats import HourlyStats, compute_per_hour
-from logstats.source_parser import FetchedSource
+from logstats.source_parser import FetchedSource, stream_entries
 from logstats.stats import gather_stats
 from logstats.top_stats import TopStats, compute_top
+
+logger = logging.getLogger(__name__)
 
 
 class SourceError(BaseModel):
@@ -133,3 +137,43 @@ async def gather_per_hour_stats(
         sources, level, combined, client, partial(compute_per_hour, level=level)
     )
     return top_per_hour_response(stats, fetched)
+
+
+class SseEvent(BaseModel):
+    type: str
+
+    def to_sse(self) -> str:
+        return f"event: {self.type}\ndata: {self.model_dump_json()}\n\n"
+
+
+class EntryEvent(SseEvent):
+    type: Literal["entry"] = "entry"
+    source: str
+    level: str
+    timestamp: datetime
+    message: str
+
+
+class SourceErrorEvent(SseEvent):
+    type: Literal["source_error"] = "source_error"
+    source: str
+    error: str
+
+
+async def stream_all(
+    sources: dict[str, str], level: LogType | None, client: httpx.AsyncClient
+) -> AsyncIterator[str]:
+    for name, url in sources.items():
+        try:
+            async for entry in stream_entries(url, level, client):
+                entry_out = EntryEvent(
+                    source=name,
+                    timestamp=entry.timestamp,
+                    level=entry.level.name.capitalize(),
+                    message=entry.message,
+                )
+                yield entry_out.to_sse()
+        except (httpx.HTTPError, OSError) as exc:
+            logger.warning(f"failed to stream {name}: {exc}")
+            err = SourceErrorEvent(source=name, error=str(exc))
+            yield err.to_sse()

@@ -1,10 +1,13 @@
+from typing import Annotated
+
 import httpx
 import pytest
 from fastapi.testclient import TestClient
+from pydantic import Field, TypeAdapter
 
 from logstats.api import app, get_client, get_settings
 from logstats.config import Settings
-from logstats.schemas import PerHourResponse, TopResponse
+from logstats.schemas import EntryEvent, PerHourResponse, SourceErrorEvent, TopResponse
 
 APP1_LOGS = (
     "2026-07-13T09:15:42 ERROR Boom\n"
@@ -145,3 +148,32 @@ def test_per_hour_combines_sources(api):
     assert len(body.results) == 1
     assert body.results[0].source == "All"
     assert body.results[0].messages[0].count == 3
+
+
+StreamEvent = Annotated[EntryEvent | SourceErrorEvent, Field(discriminator="type")]
+stream_event_adapter: TypeAdapter[StreamEvent] = TypeAdapter(StreamEvent)
+
+
+def read_events(response: httpx.Response) -> list[StreamEvent]:
+    return [
+        stream_event_adapter.validate_json(line.removeprefix("data: "))
+        for line in response.iter_lines()
+        if line.startswith("data: ")
+    ]
+
+
+def test_regular_reports(api):
+    with api.stream("GET", "/stats/regular", params={"sources": ["app1"]}) as r:
+        events = read_events(r)
+    assert isinstance(events[0], EntryEvent)
+    assert events[0].level == "Error"
+    assert events[0].message == "Boom"
+
+
+def test_regular_reports_failed_source_inline(api):
+    with api.stream("GET", "/stats/regular", params={"sources": ["bad", "app1"]}) as r:
+        events = read_events(r)
+
+    assert isinstance(events[0], SourceErrorEvent)
+    assert events[0].source == "bad"
+    assert sum(isinstance(e, EntryEvent) for e in events) == 3
