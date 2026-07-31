@@ -2,7 +2,11 @@ import os
 import tomllib
 from pathlib import Path
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
+
+
+class ConfigError(Exception):
+    """Raised when the sources config cannot be read or is not valid."""
 
 
 class Settings(BaseModel):
@@ -27,5 +31,10 @@ def resolve_sources_path(path: Path | None = None) -> Path:
 
 def load_settings(path: Path | None = None) -> Settings:
     resolved = resolve_sources_path(path)
-    with resolved.open("rb") as f:
-        return Settings(**tomllib.load(f))
+    try:
+        with resolved.open("rb") as f:
+            return Settings(**tomllib.load(f))
+    except OSError as exc:
+        raise ConfigError(f"Cannot read sources config at {resolved}: {exc}") from exc
+    except (tomllib.TOMLDecodeError, ValidationError) as exc:
+        raise ConfigError(f"Invalid sources config at {resolved}: {exc}") from exc

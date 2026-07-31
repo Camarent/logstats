@@ -1,10 +1,14 @@
-import tomllib
+import re
 from pathlib import Path
 
 import pytest
-from pydantic import ValidationError
 
-from logstats.config import DEFAULT_SOURCES, load_settings, resolve_sources_path
+from logstats.config import (
+    DEFAULT_SOURCES,
+    ConfigError,
+    load_settings,
+    resolve_sources_path,
+)
 
 
 def write_toml(tmp_path, content: str):
@@ -44,16 +48,22 @@ def test_path_defaults_to_env_var(tmp_path, monkeypatch):
 
 
 @pytest.mark.parametrize(
-    "content, expected_error",
+    "content",
     [
-        ('name = "logstats"\n', ValidationError),
-        ('sources = "not-a-table"\n', ValidationError),
-        ("[sources]\napp1 = 42\n", ValidationError),
-        ("[sources\napp1 = broken", tomllib.TOMLDecodeError),
+        'name = "logstats"\n',
+        'sources = "not-a-table"\n',
+        "[sources]\napp1 = 42\n",
+        "[sources\napp1 = broken",
     ],
     ids=["missing-table", "sources-not-a-table", "url-not-a-string", "malformed-toml"],
 )
-def test_invalid_config_is_rejected(tmp_path, content, expected_error):
+def test_invalid_config_is_rejected(tmp_path, content):
     path = write_toml(tmp_path, content)
-    with pytest.raises(expected_error):
+    with pytest.raises(ConfigError, match=re.escape(str(path))):
         load_settings(path)
+
+
+def test_missing_config_reports_the_path(tmp_path):
+    missing = tmp_path / "nope.toml"
+    with pytest.raises(ConfigError, match=re.escape(str(missing))):
+        load_settings(missing)
