@@ -1,5 +1,5 @@
 from collections import Counter
-from collections.abc import Sequence
+from collections.abc import Iterable
 from dataclasses import dataclass
 
 from logstats.data import LogEntry, LogType
@@ -22,13 +22,13 @@ class TopStats:
 
 
 def compute_top(
-    entries: Sequence[LogEntry], source: str, *, level: LogType | None, top: int
+    entries: Iterable[LogEntry], source: str, *, level: LogType | None, top: int
 ) -> TopStats:
     messages = Counter((e.level, e.message) for e in entries)
     return TopStats(
         source,
         top,
         level,
-        len(entries),
+        sum(messages.values()),
         [MessageCount(lvl, msg, n) for (lvl, msg), n in messages.most_common(top)],
     )
