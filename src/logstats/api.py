@@ -27,7 +27,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
 app = FastAPI(lifespan=lifespan)
 router = APIRouter(prefix="/stats", tags=["stats"])
-app.include_router(router)
 
 
 def get_settings(request: Request) -> Settings:
@@ -92,3 +91,6 @@ async def get_regular(
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+app.include_router(router)
