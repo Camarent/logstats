@@ -12,8 +12,20 @@ class Settings(BaseModel):
         return self.sources[name]
 
 
-def load_settings(path: Path | None = None) -> Settings:
+DEFAULT_SOURCES = "sources.toml"
+
+
+def resolve_sources_path(path: Path | None = None) -> Path:
+    """Return the sources config as an absolute path, without following symlinks.
+
+    Falls back to $LOGSTATS_SOURCES, then to sources.toml in the working directory.
+    """
     if path is None:
-        path = Path(os.environ.get("LOGSTATS_SOURCES", "sources.toml"))
-    with path.open("rb") as f:
+        path = Path(os.environ.get("LOGSTATS_SOURCES", DEFAULT_SOURCES))
+    return path.absolute()
+
+
+def load_settings(path: Path | None = None) -> Settings:
+    resolved = resolve_sources_path(path)
+    with resolved.open("rb") as f:
         return Settings(**tomllib.load(f))

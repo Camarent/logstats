@@ -1,15 +1,34 @@
 import tomllib
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
 
-from logstats.config import load_settings
+from logstats.config import DEFAULT_SOURCES, load_settings, resolve_sources_path
 
 
 def write_toml(tmp_path, content: str):
     path = tmp_path / "sources.toml"
     path.write_text(content)
     return path
+
+
+def test_relative_path_becomes_absolute(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    assert resolve_sources_path(Path("custom.toml")) == tmp_path / "custom.toml"
+
+
+def test_falls_back_to_default_name_without_env_var(tmp_path, monkeypatch):
+    monkeypatch.delenv("LOGSTATS_SOURCES", raising=False)
+    monkeypatch.chdir(tmp_path)
+    assert resolve_sources_path() == tmp_path / DEFAULT_SOURCES
+
+
+def test_symlinks_are_not_followed(tmp_path):
+    target = write_toml(tmp_path, '[sources]\napp1 = "sample.log"\n')
+    link = tmp_path / "link.toml"
+    link.symlink_to(target)
+    assert resolve_sources_path(link) == link
 
 
 def test_loads_named_sources(tmp_path):
