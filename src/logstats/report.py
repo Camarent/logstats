@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from dataclasses import dataclass
 
@@ -7,51 +6,41 @@ from logstats.per_hour_stats import HourlyStats
 from logstats.top_stats import TopStats
 
 
-class ReportFormatted(ABC):
-    @abstractmethod
-    def build_header(self) -> str: ...
+@dataclass(frozen=True)
+class Report:
+    source: str
+    header: str
+    lines: list[str]
 
-    @abstractmethod
-    def build(self) -> list[str]: ...
+    def build_header(self) -> str:
+        return f"[{self.source}] {self.header}" if self.source else self.header
 
     def __str__(self) -> str:
-        return "\n".join([self.build_header(), *self.build()])
+        header = self.build_header()
+        return "\n".join([header, *self.lines] if header else self.lines)
 
 
-@dataclass
-class TopReportFormatted(ReportFormatted):
-    stats: TopStats
-
-    def build_header(self) -> str:
-        return f"Top {self.stats.top} {get_name_capitalize(self.stats.level)} messages:"
-
-    def build(self) -> list[str]:
-        return [
+def format_top(stats: TopStats) -> Report:
+    return Report(
+        stats.source,
+        f"Top {stats.top} {get_name_capitalize(stats.level)} messages:",
+        [
             f"    {m.count} x {m.level.name.capitalize()}: {m.message}"
-            for m in self.stats.messages
-        ]
+            for m in stats.messages
+        ],
+    )
 
 
-@dataclass
-class PerHourReportFormatted(ReportFormatted):
-    stats: HourlyStats
-
-    def build_header(self) -> str:
-        return f"{get_name_capitalize(self.stats.level)} messages per hour:"
-
-    def build(self) -> list[str]:
-        return [
+def format_hourly(stats: HourlyStats) -> Report:
+    return Report(
+        stats.source,
+        f"{get_name_capitalize(stats.level)} messages per hour:",
+        [
             f"    {m.timestamp.date()} {m.timestamp.hour:02d}:00     {m.count}"
-            for m in self.stats.messages
-        ]
+            for m in stats.messages
+        ],
+    )
 
 
-@dataclass
-class RegularReportFormatted(ReportFormatted):
-    logs: Sequence[LogEntry]
-
-    def build_header(self) -> str:
-        return ""
-
-    def build(self) -> list[str]:
-        return [str(lt) for lt in self.logs]
+def format_regular(stats: Sequence[LogEntry]) -> Report:
+    return Report("", "", [str(lt) for lt in stats])

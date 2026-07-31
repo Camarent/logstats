@@ -4,11 +4,6 @@ import pytest
 
 from logstats.core import create_reports, main
 from logstats.data import ReportRequest
-from logstats.report import (
-    PerHourReportFormatted,
-    RegularReportFormatted,
-    TopReportFormatted,
-)
 from logstats.source_parser import FetchedSource
 
 
@@ -23,13 +18,13 @@ def test_no_source_fetched(monkeypatch, caplog):
 
 
 @pytest.mark.parametrize(
-    "req, report_type",
+    "req, expected_header",
     [
-        (ReportRequest(None, 1, False, False), TopReportFormatted),
-        (ReportRequest(None, None, True, False), PerHourReportFormatted),
-        (ReportRequest(None, None, False, False), RegularReportFormatted),
+        (ReportRequest(None, 1, False, False), "[app1.log] Top 1 All messages:"),
+        (ReportRequest(None, None, True, False), "[app1.log] All messages per hour:"),
+        (ReportRequest(None, None, False, False), ""),
     ],
 )
-def test_run_output_correct_report(req: ReportRequest, report_type: type):
-    reports = create_reports([FetchedSource([], "")], req)
-    assert all(type(r) is report_type for r in reports)
+def test_run_output_correct_report(req: ReportRequest, expected_header: str):
+    reports = create_reports([FetchedSource([], "app1.log")], req)
+    assert all(r.build_header() == expected_header for r in reports)

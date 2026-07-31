@@ -2,25 +2,16 @@ import pytest
 
 from logstats.data import LogEntry, ReportRequest
 from logstats.per_hour_stats import HourlyStats, compute_per_hour
-from logstats.report import (
-    PerHourReportFormatted,
-    RegularReportFormatted,
-    ReportFormatted,
-    TopReportFormatted,
-)
+from logstats.report import Report, format_hourly, format_regular, format_top
 from logstats.top_stats import TopStats, compute_top
 
 
-class StubReport(ReportFormatted):
-    def build_header(self):
-        return ""
-
-    def build(self):
-        return ["a", "b"]
-
-
 def test_report_str():
-    assert str(StubReport()) == "\na\nb"
+    assert str(Report("app1.log", "head", ["a", "b"])) == "[app1.log] head\na\nb"
+
+
+def test_report_str_without_header():
+    assert str(Report("", "", ["a", "b"])) == "a\nb"
 
 
 @pytest.fixture
@@ -55,7 +46,7 @@ def sample_logs():
 def test_top_report(sample_logs, req: ReportRequest, expected: list[str]):
     assert req.top is not None
     stats = compute_top(sample_logs, "All", level=None, top=req.top)
-    assert TopReportFormatted(stats).build() == expected
+    assert format_top(stats).lines == expected
 
 
 @pytest.mark.parametrize(
@@ -73,27 +64,26 @@ def test_top_report(sample_logs, req: ReportRequest, expected: list[str]):
 )
 def test_per_hour_report(sample_logs, req: ReportRequest, expected: list[str]):
     stats = compute_per_hour(sample_logs, "All", level=None)
-    assert PerHourReportFormatted(stats).build() == expected
+    assert format_hourly(stats).lines == expected
 
 
 def test_regular_report(sample_logs):
-    result = RegularReportFormatted(sample_logs).build()
-    assert len(result) == len(sample_logs)
+    assert len(format_regular(sample_logs).lines) == len(sample_logs)
 
 
 @pytest.mark.parametrize(
     "report, expected",
     [
         (
-            PerHourReportFormatted(HourlyStats("", None, 0, [])),
-            "All messages per hour:",
+            format_hourly(HourlyStats("app1.log", None, 0, [])),
+            "[app1.log] All messages per hour:",
         ),
         (
-            TopReportFormatted(TopStats("", 1, None, 0, [])),
-            "Top 1 All messages:",
+            format_top(TopStats("app1.log", 1, None, 0, [])),
+            "[app1.log] Top 1 All messages:",
         ),
-        (RegularReportFormatted([]), ""),
+        (format_regular([]), ""),
     ],
 )
-def test_report_headers(report: ReportFormatted, expected: str):
+def test_report_headers(report: Report, expected: str):
     assert report.build_header() == expected

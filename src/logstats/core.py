@@ -6,12 +6,7 @@ from functools import partial
 from logstats.data import LogType, ReportRequest
 from logstats.parser import fetch
 from logstats.per_hour_stats import compute_per_hour
-from logstats.report import (
-    PerHourReportFormatted,
-    RegularReportFormatted,
-    ReportFormatted,
-    TopReportFormatted,
-)
+from logstats.report import Report, format_hourly, format_regular, format_top
 from logstats.source_parser import FetchedSource
 from logstats.stats import build_stats, merge_entries
 from logstats.top_stats import compute_top
@@ -21,23 +16,23 @@ logger = logging.getLogger(__name__)
 
 def create_reports(
     sources: Sequence[FetchedSource], request: ReportRequest
-) -> list[ReportFormatted]:
+) -> list[Report]:
     if request.top is not None:
         tops = build_stats(
             sources,
             request.combined_report,
             partial(compute_top, level=request.level, top=request.top),
         )
-        return [TopReportFormatted(st) for st in tops]
+        return [format_top(st) for st in tops]
     elif request.per_hour:
         hourly = build_stats(
             sources,
             request.combined_report,
             partial(compute_per_hour, level=request.level),
         )
-        return [PerHourReportFormatted(st) for st in hourly]
+        return [format_hourly(st) for st in hourly]
     else:
-        return [RegularReportFormatted(merge_entries(sources))]
+        return [format_regular(merge_entries(sources))]
 
 
 def main(
