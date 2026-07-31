@@ -4,16 +4,16 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from logstats.data import InvalidLogFormat, LogEntry, LogType, get_name_capitalize
+from logstats.data import InvalidLogFormat, LogEntry, LogType, level_label
 
 
 @given(level=st.sampled_from(LogType))
-def test_get_name_capitalize_when_enum_values_used(level):
-    assert get_name_capitalize(level) == level.name.capitalize()
+def test_level_label_when_enum_values_used(level):
+    assert level_label(level) == level.name.capitalize()
 
 
-def test_get_name_capitalize_when_none_used():
-    assert get_name_capitalize(None) == "All"
+def test_level_label_when_none_used():
+    assert level_label(None) == "All"
 
 
 def test_produce_log_entry():

@@ -18,7 +18,7 @@ requires = ["uv_build >= 0.11.23, <0.12.0"]
 build-backend = "uv_build"
 
 [project.scripts]
-logstats="logstats.cli:parse_aguments"
+logstats="logstats.cli:parse_arguments"
 
 [tool.pytest.ini_options]
 testpaths = ["Tests"]

@@ -20,7 +20,7 @@ class SourceType(Enum):
 
 @dataclass
 class FetchedSource:
-    log_lines: list[LogEntry]
+    entries: list[LogEntry]
     source: str
     error: str | None = None
 

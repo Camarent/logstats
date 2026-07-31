@@ -5,14 +5,14 @@ from typing import TypeVar
 import httpx
 
 from logstats.data import LogEntry, LogType
-from logstats.parser import collect
+from logstats.fetcher import collect
 from logstats.source_parser import FetchedSource
 
 T = TypeVar("T")
 
 
 def merge_entries(sources: Sequence[FetchedSource]) -> list[LogEntry]:
-    return [line for fs in sources for line in fs.log_lines]
+    return [line for fs in sources for line in fs.entries]
 
 
 def build_stats(
@@ -23,7 +23,7 @@ def build_stats(
     if combined:
         return [compute(merge_entries(sources), "All")]
     else:
-        return [compute(fs.log_lines, fs.source) for fs in sources]
+        return [compute(fs.entries, fs.source) for fs in sources]
 
 
 async def gather_stats(

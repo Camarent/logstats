@@ -3,7 +3,7 @@ import time
 
 import httpx
 
-from logstats.parser import collect
+from logstats.fetcher import collect
 from logstats.source_parser import FetchedSource
 
 

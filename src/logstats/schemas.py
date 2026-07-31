@@ -7,7 +7,7 @@ from typing import Literal
 import httpx
 from pydantic import BaseModel
 
-from logstats.data import LogType, get_name_capitalize
+from logstats.data import LogType, level_label
 from logstats.per_hour_stats import HourlyStats, compute_per_hour
 from logstats.source_parser import FetchedSource, stream_entries
 from logstats.stats import gather_stats
@@ -47,7 +47,7 @@ def to_top_response(
         results=[
             TopStatsOut(
                 source=s.source,
-                level=get_name_capitalize(s.level),
+                level=level_label(s.level),
                 top=s.top,
                 total=s.total,
                 messages=[
@@ -110,7 +110,7 @@ def top_per_hour_response(
         results=[
             HourlyStatsOut(
                 source=s.source,
-                level=get_name_capitalize(s.level),
+                level=level_label(s.level),
                 total=s.total,
                 messages=[
                     HouryMessageOut(timestamp=m.timestamp, count=m.count)
