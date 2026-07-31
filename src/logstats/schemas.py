@@ -86,7 +86,7 @@ async def gather_top_stats(
     return to_top_response(stats, fetched)
 
 
-class HouryMessageOut(BaseModel):
+class HourlyMessageOut(BaseModel):
     timestamp: datetime
     count: int
 
@@ -95,7 +95,7 @@ class HourlyStatsOut(BaseModel):
     source: str
     level: str
     total: int
-    messages: list[HouryMessageOut]
+    messages: list[HourlyMessageOut]
 
 
 class PerHourResponse(BaseModel):
@@ -103,7 +103,7 @@ class PerHourResponse(BaseModel):
     errors: list[SourceError] = []
 
 
-def top_per_hour_response(
+def to_per_hour_response(
     stats: list[HourlyStats], fetched: Sequence[FetchedSource]
 ) -> PerHourResponse:
     return PerHourResponse(
@@ -113,7 +113,7 @@ def top_per_hour_response(
                 level=level_label(s.level),
                 total=s.total,
                 messages=[
-                    HouryMessageOut(timestamp=m.timestamp, count=m.count)
+                    HourlyMessageOut(timestamp=m.timestamp, count=m.count)
                     for m in s.messages
                 ],
             )
@@ -136,7 +136,7 @@ async def gather_per_hour_stats(
     (stats, fetched) = await gather_stats(
         sources, level, combined, client, partial(compute_per_hour, level=level)
     )
-    return top_per_hour_response(stats, fetched)
+    return to_per_hour_response(stats, fetched)
 
 
 class SseEvent(BaseModel):
