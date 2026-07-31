@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from logstats.data import LogEntry, get_name_capitalize
+from logstats.data import LogEntry, level_label
 from logstats.per_hour_stats import HourlyStats
 from logstats.top_stats import TopStats
 
@@ -23,7 +23,7 @@ class Report:
 def format_top(stats: TopStats) -> Report:
     return Report(
         stats.source,
-        f"Top {stats.top} {get_name_capitalize(stats.level)} messages:",
+        f"Top {stats.top} {level_label(stats.level)} messages:",
         [
             f"    {m.count} x {m.level.name.capitalize()}: {m.message}"
             for m in stats.messages
@@ -34,7 +34,7 @@ def format_top(stats: TopStats) -> Report:
 def format_hourly(stats: HourlyStats) -> Report:
     return Report(
         stats.source,
-        f"{get_name_capitalize(stats.level)} messages per hour:",
+        f"{level_label(stats.level)} messages per hour:",
         [
             f"    {m.timestamp.date()} {m.timestamp.hour:02d}:00     {m.count}"
             for m in stats.messages

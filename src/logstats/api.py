@@ -8,6 +8,7 @@ from fastapi.responses import StreamingResponse
 
 from logstats.config import Settings, load_settings
 from logstats.data import LogType
+from logstats.fetcher import TIMEOUT
 from logstats.schemas import (
     PerHourResponse,
     TopResponse,
@@ -20,14 +21,13 @@ from logstats.schemas import (
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     app.state.settings = load_settings()
-    app.state.client = httpx.AsyncClient()
+    app.state.client = httpx.AsyncClient(timeout=TIMEOUT)
     yield
     await app.state.client.aclose()
 
 
 app = FastAPI(lifespan=lifespan)
 router = APIRouter(prefix="/stats", tags=["stats"])
-app.include_router(router)
 
 
 def get_settings(request: Request) -> Settings:
@@ -87,3 +87,11 @@ async def get_regular(
     return StreamingResponse(
         stream_all(urls, level, client), media_type="text/event-stream"
     )
+
+
+@app.get("/health")
+def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+app.include_router(router)

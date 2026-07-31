@@ -7,7 +7,7 @@ from typing import Literal
 import httpx
 from pydantic import BaseModel
 
-from logstats.data import LogType, get_name_capitalize
+from logstats.data import LogType, level_label
 from logstats.per_hour_stats import HourlyStats, compute_per_hour
 from logstats.source_parser import FetchedSource, stream_entries
 from logstats.stats import gather_stats
@@ -47,7 +47,7 @@ def to_top_response(
         results=[
             TopStatsOut(
                 source=s.source,
-                level=get_name_capitalize(s.level),
+                level=level_label(s.level),
                 top=s.top,
                 total=s.total,
                 messages=[
@@ -86,7 +86,7 @@ async def gather_top_stats(
     return to_top_response(stats, fetched)
 
 
-class HouryMessageOut(BaseModel):
+class HourlyMessageOut(BaseModel):
     timestamp: datetime
     count: int
 
@@ -95,7 +95,7 @@ class HourlyStatsOut(BaseModel):
     source: str
     level: str
     total: int
-    messages: list[HouryMessageOut]
+    messages: list[HourlyMessageOut]
 
 
 class PerHourResponse(BaseModel):
@@ -103,17 +103,17 @@ class PerHourResponse(BaseModel):
     errors: list[SourceError] = []
 
 
-def top_per_hour_response(
+def to_per_hour_response(
     stats: list[HourlyStats], fetched: Sequence[FetchedSource]
 ) -> PerHourResponse:
     return PerHourResponse(
         results=[
             HourlyStatsOut(
                 source=s.source,
-                level=get_name_capitalize(s.level),
+                level=level_label(s.level),
                 total=s.total,
                 messages=[
-                    HouryMessageOut(timestamp=m.timestamp, count=m.count)
+                    HourlyMessageOut(timestamp=m.timestamp, count=m.count)
                     for m in s.messages
                 ],
             )
@@ -136,7 +136,7 @@ async def gather_per_hour_stats(
     (stats, fetched) = await gather_stats(
         sources, level, combined, client, partial(compute_per_hour, level=level)
     )
-    return top_per_hour_response(stats, fetched)
+    return to_per_hour_response(stats, fetched)
 
 
 class SseEvent(BaseModel):

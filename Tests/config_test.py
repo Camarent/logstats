@@ -1,15 +1,38 @@
-import tomllib
+import re
+from pathlib import Path
 
 import pytest
-from pydantic import ValidationError
 
-from logstats.config import load_settings
+from logstats.config import (
+    DEFAULT_SOURCES,
+    ConfigError,
+    load_settings,
+    resolve_sources_path,
+)
 
 
 def write_toml(tmp_path, content: str):
     path = tmp_path / "sources.toml"
     path.write_text(content)
     return path
+
+
+def test_relative_path_becomes_absolute(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    assert resolve_sources_path(Path("custom.toml")) == tmp_path / "custom.toml"
+
+
+def test_falls_back_to_default_name_without_env_var(tmp_path, monkeypatch):
+    monkeypatch.delenv("LOGSTATS_SOURCES", raising=False)
+    monkeypatch.chdir(tmp_path)
+    assert resolve_sources_path() == tmp_path / DEFAULT_SOURCES
+
+
+def test_symlinks_are_not_followed(tmp_path):
+    target = write_toml(tmp_path, '[sources]\napp1 = "sample.log"\n')
+    link = tmp_path / "link.toml"
+    link.symlink_to(target)
+    assert resolve_sources_path(link) == link
 
 
 def test_loads_named_sources(tmp_path):
@@ -25,16 +48,22 @@ def test_path_defaults_to_env_var(tmp_path, monkeypatch):
 
 
 @pytest.mark.parametrize(
-    "content, expected_error",
+    "content",
     [
-        ('name = "logstats"\n', ValidationError),
-        ('sources = "not-a-table"\n', ValidationError),
-        ("[sources]\napp1 = 42\n", ValidationError),
-        ("[sources\napp1 = broken", tomllib.TOMLDecodeError),
+        'name = "logstats"\n',
+        'sources = "not-a-table"\n',
+        "[sources]\napp1 = 42\n",
+        "[sources\napp1 = broken",
     ],
     ids=["missing-table", "sources-not-a-table", "url-not-a-string", "malformed-toml"],
 )
-def test_invalid_config_is_rejected(tmp_path, content, expected_error):
+def test_invalid_config_is_rejected(tmp_path, content):
     path = write_toml(tmp_path, content)
-    with pytest.raises(expected_error):
+    with pytest.raises(ConfigError, match=re.escape(str(path))):
         load_settings(path)
+
+
+def test_missing_config_reports_the_path(tmp_path):
+    missing = tmp_path / "nope.toml"
+    with pytest.raises(ConfigError, match=re.escape(str(missing))):
+        load_settings(missing)

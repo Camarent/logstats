@@ -1,5 +1,5 @@
 from collections import Counter
-from collections.abc import Sequence
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, time
 
@@ -21,13 +21,13 @@ class HourlyStats:
 
 
 def compute_per_hour(
-    entries: Sequence[LogEntry], source: str, *, level: LogType | None
+    entries: Iterable[LogEntry], source: str, *, level: LogType | None
 ) -> HourlyStats:
     messages = Counter((e.timestamp.date(), e.timestamp.hour) for e in entries)
     return HourlyStats(
         source,
         level,
-        len(entries),
+        sum(messages.values()),
         [
             HourMessage(datetime.combine(day, time(hour=hour)), n)
             for (day, hour), n in sorted(messages.items())

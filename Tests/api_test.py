@@ -41,6 +41,12 @@ def api():
     app.dependency_overrides.clear()
 
 
+def test_health_reports_ok(api):
+    response = api.get("/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+
+
 def test_app_boots_and_serves(tmp_path, monkeypatch):
     log = tmp_path / "app.log"
     log.write_text(APP1_LOGS)

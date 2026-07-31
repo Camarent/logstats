@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from functools import partial
 
 from logstats.data import LogType, ReportRequest
-from logstats.parser import fetch
+from logstats.fetcher import fetch
 from logstats.per_hour_stats import compute_per_hour
 from logstats.report import Report, format_hourly, format_regular, format_top
 from logstats.source_parser import FetchedSource
@@ -47,7 +47,7 @@ def main(
     if len(fetched_sources) == 0:
         logger.warning("No available sources.")
         return
-    if all(not fs.log_lines for fs in fetched_sources):
+    if all(not fs.entries for fs in fetched_sources):
         logger.info("No logs available with the selected filters.")
         return
     for report in create_reports(fetched_sources, request):

@@ -20,7 +20,7 @@ from logstats.data import LogType
 @click.option(
     "-c", "combined", is_flag=True, help="combine reports from different sources"
 )
-def parse_aguments(
+def parse_arguments(
     sources: Sequence[str],
     level: LogType | None,
     top: int | None,

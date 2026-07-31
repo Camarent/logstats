@@ -2,7 +2,11 @@ import os
 import tomllib
 from pathlib import Path
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
+
+
+class ConfigError(Exception):
+    """Raised when the sources config cannot be read or is not valid."""
 
 
 class Settings(BaseModel):
@@ -12,8 +16,25 @@ class Settings(BaseModel):
         return self.sources[name]
 
 
-def load_settings(path: Path | None = None) -> Settings:
+DEFAULT_SOURCES = "sources.toml"
+
+
+def resolve_sources_path(path: Path | None = None) -> Path:
+    """Return the sources config as an absolute path, without following symlinks.
+
+    Falls back to $LOGSTATS_SOURCES, then to sources.toml in the working directory.
+    """
     if path is None:
-        path = Path(os.environ.get("LOGSTATS_SOURCES", "sources.toml"))
-    with path.open("rb") as f:
-        return Settings(**tomllib.load(f))
+        path = Path(os.environ.get("LOGSTATS_SOURCES", DEFAULT_SOURCES))
+    return path.absolute()
+
+
+def load_settings(path: Path | None = None) -> Settings:
+    resolved = resolve_sources_path(path)
+    try:
+        with resolved.open("rb") as f:
+            return Settings(**tomllib.load(f))
+    except OSError as exc:
+        raise ConfigError(f"Cannot read sources config at {resolved}: {exc}") from exc
+    except (tomllib.TOMLDecodeError, ValidationError) as exc:
+        raise ConfigError(f"Invalid sources config at {resolved}: {exc}") from exc
