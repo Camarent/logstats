@@ -120,18 +120,19 @@ Interactive docs render at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/do
 
 ### Endpoints
 
-All endpoints accept repeated `sources` params and an optional `level`.
+The `/stats/*` endpoints accept repeated `sources` params and an optional `level`.
 
 | Endpoint | Returns |
 | --- | --- |
 | `GET /stats/top` | Top-N message counts (JSON) |
 | `GET /stats/per-hour` | Per-hour entry counts (JSON) |
 | `GET /stats/regular` | Raw entries as a Server-Sent Events stream |
+| `GET /health` | `{"status": "ok"}` — liveness check, takes no params |
 
 | Query param | Applies to | Description |
 | --- | --- | --- |
-| `sources` | all | Registered source name; repeat for multiple |
-| `level` | all | `DEBUG`/`INFO`/`WARNING`/`ERROR` (case-insensitive) |
+| `sources` | all `/stats/*` | Registered source name; repeat for multiple |
+| `level` | all `/stats/*` | `DEBUG`/`INFO`/`WARNING`/`ERROR` (case-insensitive) |
 | `top` | `/stats/top` | Number of messages to return (≥ 1, default 3) |
 | `combined` | `/stats/top`, `/stats/per-hour` | Merge all sources into one result (default `false`) |
 
