@@ -8,6 +8,7 @@ from fastapi.responses import StreamingResponse
 
 from logstats.config import Settings, load_settings
 from logstats.data import LogType
+from logstats.fetcher import TIMEOUT
 from logstats.schemas import (
     PerHourResponse,
     TopResponse,
@@ -20,7 +21,7 @@ from logstats.schemas import (
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     app.state.settings = load_settings()
-    app.state.client = httpx.AsyncClient()
+    app.state.client = httpx.AsyncClient(timeout=TIMEOUT)
     yield
     await app.state.client.aclose()
 

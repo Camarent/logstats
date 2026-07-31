@@ -33,6 +33,28 @@ def test_unknown_source_types():
     assert (sum(len(r.entries) for r in result)) == 0
 
 
+def test_collect_never_exceeds_max_concurrent():
+    in_flight = 0
+    peak = 0
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal in_flight, peak
+        in_flight += 1
+        peak = max(peak, in_flight)
+        await asyncio.sleep(0.01)
+        in_flight -= 1
+        return httpx.Response(200, text="2026-07-13T09:00:00 INFO ok")
+
+    async def run() -> list[FetchedSource]:
+        sources = [f"http://x/app{i}.log" for i in range(8)]
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            return await collect(sources, None, client, max_concurrent=3)
+
+    result = asyncio.run(run())
+    assert len(result) == 8
+    assert peak == 3
+
+
 def test_connectivity_issues():
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path == "/good.log":
