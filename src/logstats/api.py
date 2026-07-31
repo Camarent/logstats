@@ -87,3 +87,8 @@ async def get_regular(
     return StreamingResponse(
         stream_all(urls, level, client), media_type="text/event-stream"
     )
+
+
+@app.get("/health")
+def health() -> dict[str, str]:
+    return {"status": "ok"}
