@@ -34,7 +34,7 @@ Log lines are expected as `TIMESTAMP LEVEL MESSAGE`, e.g.
 
 ```bash
 $ uv run logstats sample.log --top 5
-Top 5 All messages:
+[sample.log] Top 5 All messages:
     5 x Error: Database connection failed: timeout after 30s
     1 x Info: Starting logstats service v0.2
     1 x Debug: Loading config from /etc/logstats/config.toml
@@ -46,7 +46,7 @@ Top 5 All messages:
 
 ```bash
 $ uv run logstats sample.log --level ERROR --top 3
-Top 3 Error messages:
+[sample.log] Top 3 Error messages:
     5 x Error: Database connection failed: timeout after 30s
     1 x Error: Failed to write to disk: no space left on device
 ```
@@ -55,7 +55,7 @@ Top 3 Error messages:
 
 ```bash
 $ uv run logstats sample.log --per-hour
-All messages per hour:
+[sample.log] All messages per hour:
     2026-07-13 09:00     9
     2026-07-13 10:00     6
     2026-07-13 11:00     1
@@ -72,6 +72,9 @@ Any number of paths or URLs can be passed. By default each source gets its own r
 uv run logstats sample.log https://example.com/app.log --top 3       # one report per source
 uv run logstats sample.log https://example.com/app.log --top 3 -c    # single combined report
 ```
+
+Each report header is labelled with the source it came from — `[sample.log]`, `[app.log]` —
+so per-source reports stay distinguishable. A combined report is labelled `[All]`.
 
 Sources are fetched concurrently. A source that fails (missing file, HTTP error) is
 reported as a warning and the remaining sources still produce output.
