@@ -108,7 +108,7 @@ check_commit_range() {
       echo "refused: commit ${commit_short}: message names a job" >&2
       return 1
     fi
-    if echo "$msg" | grep -qE 'workspace/[A-Za-z0-9_/-]+' && ! echo "$msg" | grep -qE 'workspace/<'; then
+    if echo "$msg" | sed 's#workspace/<[^[:space:]]*##g' | grep -qE 'workspace/[A-Za-z0-9_/-]+'; then
       echo "refused: commit ${commit_short}: message references private workspace" >&2
       return 1
     fi
@@ -152,8 +152,8 @@ check_content_in_commit() {
         # Added line (not +++), check if it contains forbidden pattern
         line_content="${line#+}"
         # Skip placeholder patterns
+        line_content=$(printf '%s' "$line_content" | sed 's#workspace/<[^[:space:]]*##g')
         case "$line_content" in
-          *workspace/\<*) ;;
           *)
             # Check for forbidden workspace references
             if echo "$line_content" | grep -qE 'workspace/[A-Za-z0-9_/-]+'; then
@@ -266,8 +266,8 @@ check_content_in_diff() {
         # Added line (not +++), check if it contains forbidden pattern
         line_content="${line#+}"
         # Skip placeholder patterns
+        line_content=$(printf '%s' "$line_content" | sed 's#workspace/<[^[:space:]]*##g')
         case "$line_content" in
-          *workspace/\<*) ;;
           *)
             # Check for forbidden workspace references
             if echo "$line_content" | grep -qE 'workspace/[A-Za-z0-9_/-]+'; then

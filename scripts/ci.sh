@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run the same checks as .github/workflows/code_quality_check.yml, in the same order.
+# Run the same checks as .github/workflows/ci.yml, in the same order.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
