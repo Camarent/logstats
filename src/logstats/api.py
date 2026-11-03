@@ -45,7 +45,7 @@ def get_urls(
     try:
         urls = {name: settings.get_source_url(name) for name in sources}
     except KeyError as exc:
-        raise HTTPException(422, f"Unknown source: {exc.args[0]}")
+        raise HTTPException(422, f"Unknown source: {exc.args[0]}") from exc
     return urls
 
 
@@ -53,7 +53,7 @@ def parse_level(level: str | None = None) -> LogType | None:
     try:
         parsed = LogType[level.upper()] if level else None
     except (KeyError, ValueError) as exc:
-        raise HTTPException(422, f"Unknown level: {exc.args[0]}")
+        raise HTTPException(422, f"Unknown level: {exc.args[0]}") from exc
     return parsed
 
 

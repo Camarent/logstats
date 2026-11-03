@@ -10,7 +10,6 @@ dist/
 # Environments / uv
 .venv/
 venv/
-.python-version
 
 # Tooling caches
 .pytest_cache/

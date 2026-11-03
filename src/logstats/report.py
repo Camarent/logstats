@@ -25,7 +25,7 @@ def format_top(stats: TopStats) -> Report:
         stats.source,
         f"Top {stats.top} {level_label(stats.level)} messages:",
         [
-            f"    {m.count} x {m.level.name.capitalize()}: {m.message}"
+            f"    {m.count} x {level_label(m.level)}: {m.message}"
             for m in stats.messages
         ],
     )

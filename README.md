@@ -1,13 +1,15 @@
 # logstats
 
-[![CI](https://github.com/Camarent/logstats/actions/workflows/code_quality_check.yml/badge.svg)](https://github.com/Camarent/logstats/actions/workflows/code_quality_check.yml)
-[![coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/Camarent/6d7c1f051b41f3084116ccc594267742/raw/logstats-coverage.json&style=flat)](https://github.com/Camarent/logstats/actions/workflows/code_quality_check.yml)
+[![CI](https://github.com/Camarent/logstats/actions/workflows/ci.yml/badge.svg)](https://github.com/Camarent/logstats/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/Camarent/logstats/branch/master/graph/badge.svg)](https://codecov.io/gh/Camarent/logstats)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/Camarent/logstats)](https://github.com/Camarent/logstats/releases)
 
 Statistics from log files — top-N messages, per-hour buckets, and level filtering —
 available both as a CLI and as an HTTP API. Sources can be local paths or URLs, and
 multiple sources are fetched concurrently.
 
-> **Status:** built in public over a Python foundation sprint.
+> **Status:** alpha (`0.1.0`).
 > The point isn't the tool's novelty — it's clean, typed, tested Python with proper packaging and tooling.
 
 ## Install
@@ -189,14 +191,25 @@ producing a result — so only the raw view is streamed.
 
 ## Development
 
+Run the full check suite (ruff, format check, mypy, pytest):
+
 ```bash
-uv run pytest --cov=logstats --cov-report=term-missing
-uv run mypy
-uv run ruff check .
-uv run ruff format --check .
+scripts/ci.sh
 ```
 
-CI runs the same checks on every push and pull request.
+Run tests with a coverage report:
+
+```bash
+uv run pytest --cov=src/logstats --cov-report=term-missing
+```
+
+Enable the repo's git hooks (secret scan, commit-message check, pre-push checks):
+
+```bash
+git config core.hooksPath .githooks
+```
+
+CI runs the same checks on every push and pull request. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Tech
 

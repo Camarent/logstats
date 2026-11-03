@@ -16,8 +16,12 @@ async def collect_logs(responses: dict[str, str]) -> list[FetchedSource]:
 
 def test_parse_fetches():
     logs = {
-        "http://logs.test/app1.log": "2026-07-13T09:15:42 INFO Starting\n2026-07-13T09:22:10 ERROR Boom",
-        "http://logs.test/app2.log": "2026-07-13T10:11:08 WARNING Disk\n2026-07-13T10:52:03 ERROR Crash",
+        "http://logs.test/app1.log": (
+            "2026-07-13T09:15:42 INFO Starting\n2026-07-13T09:22:10 ERROR Boom"
+        ),
+        "http://logs.test/app2.log": (
+            "2026-07-13T10:11:08 WARNING Disk\n2026-07-13T10:52:03 ERROR Crash"
+        ),
     }
     result = asyncio.run(collect_logs(logs))
     assert {r.source for r in result} == set(logs)
@@ -26,7 +30,9 @@ def test_parse_fetches():
 
 def test_unknown_source_types():
     logs = {
-        "ftp://logs.test/app1.log": "2026-07-13T09:15:42 INFO Starting\n2026-07-13T09:22:10 ERROR Boom"
+        "ftp://logs.test/app1.log": (
+            "2026-07-13T09:15:42 INFO Starting\n2026-07-13T09:22:10 ERROR Boom"
+        )
     }
     result = asyncio.run(collect_logs(logs))
     assert {r.source for r in result} == set(logs)
