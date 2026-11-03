@@ -4,7 +4,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-uv sync
+uv sync --locked
 uv run ruff check
 uv run ruff format --check
 uv run mypy
