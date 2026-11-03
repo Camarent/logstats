@@ -40,6 +40,14 @@ class TopResponse(BaseModel):
     errors: list[SourceError] = []
 
 
+def source_errors(fetched: Sequence[FetchedSource]) -> list[SourceError]:
+    return [
+        SourceError(source=fs.source, error=fs.error)
+        for fs in fetched
+        if fs.error is not None
+    ]
+
+
 def to_top_response(
     stats: list[TopStats], fetched: Sequence[FetchedSource]
 ) -> TopResponse:
@@ -52,7 +60,7 @@ def to_top_response(
                 total=s.total,
                 messages=[
                     MessageCountOut(
-                        level=m.level.name.capitalize(),
+                        level=level_label(m.level),
                         message=m.message,
                         count=m.count,
                     )
@@ -61,11 +69,7 @@ def to_top_response(
             )
             for s in stats
         ],
-        errors=[
-            SourceError(source=fs.source, error=fs.error)
-            for fs in fetched
-            if fs.error is not None
-        ],
+        errors=source_errors(fetched),
     )
 
 
@@ -119,11 +123,7 @@ def to_per_hour_response(
             )
             for s in stats
         ],
-        errors=[
-            SourceError(source=fs.source, error=fs.error)
-            for fs in fetched
-            if fs.error is not None
-        ],
+        errors=source_errors(fetched),
     )
 
 
@@ -169,7 +169,7 @@ async def stream_all(
                 entry_out = EntryEvent(
                     source=name,
                     timestamp=entry.timestamp,
-                    level=entry.level.name.capitalize(),
+                    level=level_label(entry.level),
                     message=entry.message,
                 )
                 yield entry_out.to_sse()
