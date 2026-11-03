@@ -3,7 +3,7 @@ from collections.abc import Sequence
 
 import click
 
-from logstats.core import main
+from logstats.core import main as core_main
 from logstats.data import LogType
 
 
@@ -20,7 +20,7 @@ from logstats.data import LogType
 @click.option(
     "-c", "combined", is_flag=True, help="combine reports from different sources"
 )
-def parse_arguments(
+def main(
     sources: Sequence[str],
     level: LogType | None,
     top: int | None,
@@ -40,4 +40,4 @@ def parse_arguments(
     logging_level = logging.DEBUG if verbose else logging.WARNING
     logging.basicConfig(level=logging_level, format="%(levelname)s:%(message)s")
 
-    main(sources, level, top, per_hour, combined)
+    core_main(sources, level, top, per_hour, combined)
