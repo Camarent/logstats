@@ -1,0 +1,345 @@
+#!/bin/sh
+# Shared checks for pre-commit and commit-msg. Enable: git config core.hooksPath .githooks
+
+# Paths no commit may add or change. Generic bans live here. Owner-specific internal paths are NOT
+# listed in this public file: put one ERE per line in the untracked `.git/info/guard-paths` (blank and # lines ignored).
+banned_re() {
+  base='workspace/[^.]|dist/|(.*/)?target/|(.*/)?cargo-target/|.*\.wasm$|(.*/)?[^/]*[Pp]rogress[^/]*\.json$'
+  extra=$(grep -v '^[[:space:]]*\(#\|$\)' "$(git rev-parse --git-path info/guard-paths 2>/dev/null)" 2>/dev/null | paste -sd'|' -)
+  [ -n "$extra" ] && base="$base|$extra"
+  printf '^(%s)' "$base"
+}
+
+# Accepted identity: a GitHub noreply address (plain or <digits>+login form).
+# logstats.owner (a GitHub login) pins it to that login; unset accepts any noreply address.
+is_owner_email() {
+  owner=$(git config --get logstats.owner 2>/dev/null)
+  if [ -z "$owner" ]; then
+    case "$1" in
+      *@users.noreply.github.com) return 0 ;;
+    esac
+    return 1
+  fi
+  case "$1" in
+    "$owner@users.noreply.github.com") return 0 ;;
+    [0-9]*+"$owner@users.noreply.github.com") return 0 ;;
+  esac
+  return 1
+}
+
+# Emails allowed inside commit messages (owner + the agent co-author trailer)
+is_msg_email_ok() {
+  is_owner_email "$1" && return 0
+  [ "$1" = "noreply@anthropic.com" ]
+}
+
+# Message must not name jobs (stdin); returns 1 if it does
+msg_names_job() {
+  grep -qiE 'vibe job|squash of job|(^|[^A-Za-z0-9])job/[A-Za-z0-9]|^Merge (branch .?)?job/|(^|[^A-Za-z0-9])job/[A-Za-z0-9._-]+-t[0-9]+(-r[0-9]+)?([^A-Za-z0-9]|$)'
+}
+
+# First line of a commit message (stdin) must be '<type>(<area>): <what>';
+# no exemptions
+subject_ok() {
+  first=$(grep -v '^#' | head -n 1)
+  echo "$first" | grep -qE '^(feat|fix|refactor|test|docs|chore|perf|build|style)\([^()[:space:]]+\): [^[:space:]]' && return 0
+  return 1
+}
+
+# Secret scanner must exist; LOGSTATS_ALLOW_NO_GITLEAKS=1 overrides explicitly
+require_gitleaks() {
+  command -v gitleaks >/dev/null 2>&1 && return 0
+  [ "${LOGSTATS_ALLOW_NO_GITLEAKS:-}" = "1" ] && { echo "guard: gitleaks missing, secret scan skipped (LOGSTATS_ALLOW_NO_GITLEAKS=1)" >&2; return 0; }
+  echo "refused: gitleaks not found. Install gitleaks v8.30.1 (https://github.com/gitleaks/gitleaks/releases, verify sha256) onto PATH, or set LOGSTATS_ALLOW_NO_GITLEAKS=1 to skip the secret scan" >&2
+  return 1
+}
+
+# Check author and committer email; prints error and returns 1 if bad
+check_ident() {
+  for kind in AUTHOR COMMITTER; do
+    ident=$(git var "GIT_${kind}_IDENT" 2>/dev/null) || { echo "refused: no ${kind} identity configured" >&2; return 1; }
+    email=${ident#*<}; email=${email%%>*}
+    is_owner_email "$email" || { echo "refused: $kind email '$email' is not the configured noreply address" >&2; return 1; }
+    [ "${ident##* }" = "+0000" ] || { echo "refused: $kind date offset '${ident##* }' is not +0000 (use TZ=UTC)" >&2; return 1; }
+  done
+  return 0
+}
+
+# Check a range of commits (local_sha..remote_sha or local_sha if remote is zeros)
+# for bad author/committer email and forbidden content. Prints error and returns 1 if bad.
+check_commit_range() {
+  local_sha="$1"
+  remote_sha="$2"
+  range=""
+
+  if [ "$remote_sha" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "${remote_sha}^{commit}" 2>/dev/null; then
+    # new ref, or remote sha unknown locally: scan everything not on a known remote ref
+    range=$(git rev-list "$local_sha" --not --remotes) || { echo "refused: cannot list commits for $local_sha" >&2; return 1; }
+  else
+    range=$(git rev-list "${remote_sha}..${local_sha}") || { echo "refused: cannot list commits ${remote_sha}..${local_sha}" >&2; return 1; }
+  fi
+
+  for commit in $range; do
+    # Check author and committer for this commit
+    commit_short=$(echo "$commit" | cut -c1-7)
+    # one git call for both identities and both dates
+    ident=$(git show -s --format='%ae%n%ce%n%ai%n%ci' "$commit" 2>/dev/null)
+    author_email=$(printf '%s\n' "$ident" | sed -n 1p)
+    committer_email=$(printf '%s\n' "$ident" | sed -n 2p)
+    is_owner_email "$author_email" || { echo "refused: commit ${commit_short}: author email '$author_email' is not the configured noreply address" >&2; return 1; }
+    is_owner_email "$committer_email" || { echo "refused: commit ${commit_short}: committer email '$committer_email' is not the configured noreply address" >&2; return 1; }
+    for n in 3 4; do
+      off=$(printf '%s\n' "$ident" | sed -n "${n}p")
+      off=${off##* }
+      [ "$off" = "+0000" ] || { echo "refused: commit ${commit_short}: date offset '$off' is not +0000" >&2; return 1; }
+    done
+
+    # Check commit message for personal email addresses and private references
+    msg=$(git show -s --format=%B "$commit")
+    if echo "$msg" | grep -qE '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}' ; then
+      bad_mail=$(echo "$msg" | grep -oE '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}' | while read -r m; do is_msg_email_ok "$m" || echo "$m"; done | head -1)
+      if [ -n "$bad_mail" ]; then
+        echo "refused: commit ${commit_short}: message contains email '$bad_mail'" >&2
+        return 1
+      fi
+    fi
+    printf '%s\n' "$msg" | subject_ok || { echo "refused: commit ${commit_short}: subject is not '<type>(<area>): <what>'" >&2; return 1; }
+    if echo "$msg" | msg_names_job; then
+      echo "refused: commit ${commit_short}: message names a job" >&2
+      return 1
+    fi
+    if echo "$msg" | sed 's#workspace/<[^[:space:]]*##g' | grep -qE 'workspace/[A-Za-z0-9_/-]+'; then
+      echo "refused: commit ${commit_short}: message references private workspace" >&2
+      return 1
+    fi
+
+    # Check for forbidden paths in this commit
+    bad_paths=$(git diff-tree --root --no-commit-id --name-only --diff-filter=ACMR -r "$commit" | grep -E "$(banned_re)" || true)
+    if [ -n "$bad_paths" ]; then
+      echo "refused: commit ${commit_short}: stages private or generated paths:" >&2
+      echo "$bad_paths" | head -10 | sed 's/^/  /' >&2
+      return 1
+    fi
+
+    # Check for forbidden content in this commit
+    check_content_in_commit "$commit" || return 1
+  done
+
+  return 0
+}
+
+# Check content in a single commit for forbidden workspace references
+check_content_in_commit() {
+  commit="$1"
+  commit_short=$(echo "$commit" | cut -c1-7)
+  tmpfile=$(mktemp)
+  # keep file headers and only the added lines that can match (workspace/ path, email, or absolute local path): the loop below then spawns one grep per candidate, not per added line
+  git show -U0 "$commit" | grep -E '^(\+\+\+ |\+.*workspace/[A-Za-z0-9_/-]+|\+.*[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|\+.*(/root/|/home/|/Users/))' > "$tmpfile" || true
+  line_count=0
+  found_bad=false
+  current_file=""
+
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in
+      +++\ *)
+        current_file="${line#+++ b/}"
+        # Skip /dev/null (deleted files)
+        if [ "$current_file" = "/dev/null" ]; then
+          current_file=""
+        fi
+        ;;
+      +*)
+        # Added line (not +++), check if it contains forbidden pattern
+        line_content="${line#+}"
+        # Skip placeholder patterns
+        line_content=$(printf '%s' "$line_content" | sed 's#workspace/<[^[:space:]]*##g')
+        case "$line_content" in
+          *)
+            # Check for forbidden workspace references
+            if echo "$line_content" | grep -qE 'workspace/[A-Za-z0-9_/-]+'; then
+              # Check if file is exempt
+              case "$current_file" in
+                .githooks/*|tests/hooks-test.sh) ;;
+                *)
+                  if [ "$found_bad" = false ]; then
+                    echo "refused: commit ${commit_short}: content references private workspace:" >&2
+                    found_bad=true
+                  fi
+                  if [ "$line_count" -lt 5 ]; then
+                    echo "  $line_content" >&2
+                    line_count=$((line_count + 1))
+                  fi
+                  ;;
+              esac
+            fi
+            # Check for non-allowed email addresses
+            if echo "$line_content" | grep -qE '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}'; then
+              bad_email=$(echo "$line_content" | grep -oE '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}' | while read -r m; do is_msg_email_ok "$m" || echo "$m"; done | head -1)
+              if [ -n "$bad_email" ]; then
+                # Check if file is exempt
+                case "$current_file" in
+                  .githooks/*|tests/hooks-test.sh) ;;
+                  *)
+                    if [ "$found_bad" = false ]; then
+                      echo "refused: commit ${commit_short}: content contains email '$bad_email':" >&2
+                      found_bad=true
+                    fi
+                    if [ "$line_count" -lt 5 ]; then
+                      echo "  $line_content" >&2
+                      line_count=$((line_count + 1))
+                    fi
+                    ;;
+                esac
+              fi
+            fi
+            # Check for absolute local paths
+            case "$line_content" in
+              */root/*|*/home/*|*/Users/*)
+                # Check if file is exempt
+                case "$current_file" in
+                  .githooks/*|tests/hooks-test.sh) ;;
+                  *)
+                    if [ "$found_bad" = false ]; then
+                      echo "refused: commit ${commit_short}: content contains absolute path:" >&2
+                      found_bad=true
+                    fi
+                    if [ "$line_count" -lt 5 ]; then
+                      echo "  $line_content" >&2
+                      line_count=$((line_count + 1))
+                    fi
+                    ;;
+                esac
+                ;;
+            esac
+            ;;
+        esac
+        ;;
+    esac
+  done < "$tmpfile"
+  rm -f "$tmpfile"
+
+  if [ "$found_bad" = true ]; then
+    return 1
+  fi
+  return 0
+}
+
+# Main function for pre-commit and commit-msg
+main_guard() {
+  fail=0
+
+  # Check author and committer emails
+  check_ident || fail=1
+
+  # Check staged paths
+  bad=$(git diff --cached --name-only --diff-filter=ACMR | grep -E "$(banned_re)" || true)
+  if [ -n "$bad" ]; then
+    echo "refused: private or generated paths are staged:" >&2
+    echo "$bad" | head -10 >&2
+    fail=1
+  fi
+
+  # Check staged content for forbidden workspace references
+  check_content_in_diff || fail=1
+
+  return $fail
+}
+
+# Check content in staged changes
+check_content_in_diff() {
+  tmpfile=$(mktemp)
+  git diff --cached -U0 --diff-filter=ACMR > "$tmpfile"
+  line_count=0
+  found_bad=false
+  current_file=""
+
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in
+      +++\ *)
+        current_file="${line#+++ b/}"
+        # Skip /dev/null (deleted files)
+        if [ "$current_file" = "/dev/null" ]; then
+          current_file=""
+        fi
+        ;;
+      +*)
+        # Added line (not +++), check if it contains forbidden pattern
+        line_content="${line#+}"
+        # Skip placeholder patterns
+        line_content=$(printf '%s' "$line_content" | sed 's#workspace/<[^[:space:]]*##g')
+        case "$line_content" in
+          *)
+            # Check for forbidden workspace references
+            if echo "$line_content" | grep -qE 'workspace/[A-Za-z0-9_/-]+'; then
+              # Check if file is exempt
+              case "$current_file" in
+                .githooks/*|tests/hooks-test.sh) ;;
+                *)
+                  if [ "$found_bad" = false ]; then
+                    echo "refused: staged content references private workspace:" >&2
+                    found_bad=true
+                  fi
+                  if [ "$line_count" -lt 5 ]; then
+                    echo "  $line_content" >&2
+                    line_count=$((line_count + 1))
+                  fi
+                  ;;
+              esac
+            fi
+            # Check for non-allowed email addresses
+            if echo "$line_content" | grep -qE '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}'; then
+              bad_email=$(echo "$line_content" | grep -oE '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}' | while read -r m; do is_msg_email_ok "$m" || echo "$m"; done | head -1)
+              if [ -n "$bad_email" ]; then
+                # Check if file is exempt
+                case "$current_file" in
+                  .githooks/*|tests/hooks-test.sh) ;;
+                  *)
+                    if [ "$found_bad" = false ]; then
+                      echo "refused: staged content contains email '$bad_email':" >&2
+                      found_bad=true
+                    fi
+                    if [ "$line_count" -lt 5 ]; then
+                      echo "  $line_content" >&2
+                      line_count=$((line_count + 1))
+                    fi
+                    ;;
+                esac
+              fi
+            fi
+            # Check for absolute local paths
+            case "$line_content" in
+              */root/*|*/home/*|*/Users/*)
+                # Check if file is exempt
+                case "$current_file" in
+                  .githooks/*|tests/hooks-test.sh) ;;
+                  *)
+                    if [ "$found_bad" = false ]; then
+                      echo "refused: staged content contains absolute path:" >&2
+                      found_bad=true
+                    fi
+                    if [ "$line_count" -lt 5 ]; then
+                      echo "  $line_content" >&2
+                      line_count=$((line_count + 1))
+                    fi
+                    ;;
+                esac
+                ;;
+            esac
+            ;;
+        esac
+        ;;
+    esac
+  done < "$tmpfile"
+  rm -f "$tmpfile"
+
+  if [ "$found_bad" = true ]; then
+    return 1
+  fi
+  return 0
+}
+
+# If sourced, don't run main
+if [ "${0##*/}" = "guard.sh" ] || [ -z "${0##*/}" ]; then
+  main_guard
+  exit $?
+fi

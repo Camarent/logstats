@@ -1,0 +1,71 @@
+[project]
+name = "logstats"
+version = "0.1.0"
+description = "A small CLI tool that computes statistics from log files"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [{ name = "Camarent" }]
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = ["logs", "log-analysis", "statistics", "cli", "fastapi"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: System :: Logging",
+    "Typing :: Typed",
+]
+dependencies = [
+    "aiofiles>=25.1.0",
+    "click>=8.4.2",
+    "fastapi>=0.140.8",
+    "httpx>=0.28.1",
+    "pydantic>=2.13.4",
+    "uvicorn>=0.51.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/Camarent/logstats"
+Issues = "https://github.com/Camarent/logstats/issues"
+Changelog = "https://github.com/Camarent/logstats/releases"
+
+[build-system]
+requires = ["uv_build >= 0.11.23, <0.12.0"]
+build-backend = "uv_build"
+
+[project.scripts]
+logstats="logstats.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=src/logstats --cov-report=term-missing"
+
+[tool.coverage.report]
+fail_under = 95
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+
+[tool.mypy]
+files = ["src", "tests"]
+strict = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+
+[dependency-groups]
+dev = [
+    "hypothesis>=6.161.0",
+    "mypy>=2.3.0",
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.15.22",
+    "types-aiofiles>=25.1.0.20260518",
+]
+
