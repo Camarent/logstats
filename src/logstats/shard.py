@@ -18,6 +18,8 @@ def to_json(counter: Counter[ShardKey]) -> str:
 
 def from_json(text: str) -> Counter[ShardKey]:
     rows = json.loads(text)
+    if not isinstance(rows, list):
+        raise ValueError("expected JSON list")
     counter: Counter[ShardKey] = Counter()
     for index, row in enumerate(rows):
         if not isinstance(row, list) or len(row) != 3:

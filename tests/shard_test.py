@@ -99,3 +99,9 @@ def test_from_json_rejects_bad_count(count):
 def test_from_json_rejects_bool_count():
     with pytest.raises(ValueError, match="row 0: count must be int >= 0"):
         from_json(json.dumps([[3, "a", True]]))
+
+
+@pytest.mark.parametrize("payload", [5, None, {"a": 1}])
+def test_from_json_rejects_non_list_top_level(payload):
+    with pytest.raises(ValueError, match="expected JSON list"):
+        from_json(json.dumps(payload))
