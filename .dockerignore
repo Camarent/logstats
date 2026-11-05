@@ -1,0 +1,17 @@
+.git
+.venv
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.hypothesis
+.code-index
+.work
+dist
+__pycache__
+tests
+.audits
+.notes
+.claude
+.env*
+coverage.xml
+*.log

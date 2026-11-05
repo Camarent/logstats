@@ -93,8 +93,27 @@ With no view flag, `logstats` prints every (optionally level-filtered) entry.
 | `--top N` | Show the N most frequent messages (N ≥ 1) |
 | `--per-hour` | Bucket entries by hour |
 | `-c` | Combine all sources into a single report |
+| `--json` | Print reports as a JSON array of `{source, header, lines}` objects |
 | `-v`, `--verbose` | Emit diagnostic logs to stderr |
 | `--help` | Show usage and exit |
+
+## Library API
+
+The package re-exports four functions from `logstats`:
+
+- `stream_lines(source: str, client: httpx.AsyncClient) -> AsyncIterator[str]`: yields raw lines from an HTTP(S) URL or a local path.
+- `parse_line(line: str, level: LogType | None) -> LogEntry | None`: parses one line; returns `None` when the line is invalid or filtered out by `level`.
+- `compute_top(entries: Iterable[LogEntry], source: str, *, level: LogType | None, top: int) -> TopStats`: returns the `top` most frequent messages and the total count.
+- `compute_per_hour(entries: Iterable[LogEntry], source: str, *, level: LogType | None) -> HourlyStats`: returns entry counts bucketed by date and hour.
+
+### Shard counters
+
+`logstats.shard` counts entries per `(level, message)` key and merges the counts from several inputs:
+
+- `shard_counts(entries: Iterable[LogEntry]) -> Counter[ShardKey]`: counts entries per key.
+- `to_json(counter: Counter[ShardKey]) -> str`: serializes a counter to a JSON array of `[level, message, count]` rows.
+- `from_json(text: str) -> Counter[ShardKey]`: reads a counter back from `to_json` output.
+- `merge(counters: Iterable[Counter[ShardKey]]) -> Counter[ShardKey]`: sums several counters into one.
 
 ## HTTP API
 
@@ -188,6 +207,22 @@ mid-stream is reported as a `source_error` event rather than an HTTP error.
 
 Aggregations (`/stats/top`, `/stats/per-hour`) cannot stream — they need every entry before
 producing a result — so only the raw view is streamed.
+
+## Container
+
+The image runs `logstats` once and exits. Build it, then mount the log directory:
+
+```bash
+docker build -t logstats .
+docker run --rm -v "$PWD:/data" logstats /data/sample.log --top 5
+```
+
+- Input: the arguments, passed to `logstats` unchanged. With no arguments, `LOGSTATS_INPUT` gives the input path (required then). When you pass options, put the input path in the arguments: `LOGSTATS_INPUT` is then ignored.
+- Output: stdout, or the file at `LOGSTATS_OUTPUT` when set (the path must be writable inside the container).
+
+```bash
+docker run --rm -v "$PWD:/data" -e LOGSTATS_OUTPUT=/data/report.json logstats /data/sample.log --json
+```
 
 ## Development
 

@@ -16,6 +16,7 @@ from logstats.data import LogType
 )
 @click.option("--top", type=click.IntRange(min=1), help="show most common N messages")
 @click.option("--per-hour", is_flag=True, help="show per hour messages counts")
+@click.option("--json", "as_json", is_flag=True, help="print reports as JSON")
 @click.option("-v", "--verbose", is_flag=True, help="show diagnostic logs")
 @click.option(
     "-c", "combined", is_flag=True, help="combine reports from different sources"
@@ -27,6 +28,7 @@ def main(
     per_hour: bool,
     verbose: bool,
     combined: bool,
+    as_json: bool,
 ) -> None:
     """Read a log file and print or filter its entries.
 
@@ -40,4 +42,4 @@ def main(
     logging_level = logging.DEBUG if verbose else logging.WARNING
     logging.basicConfig(level=logging_level, format="%(levelname)s:%(message)s")
 
-    core_main(sources, level, top, per_hour, combined)
+    core_main(sources, level, top, per_hour, combined, as_json)
