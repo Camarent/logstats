@@ -96,6 +96,15 @@ With no view flag, `logstats` prints every (optionally level-filtered) entry.
 | `-v`, `--verbose` | Emit diagnostic logs to stderr |
 | `--help` | Show usage and exit |
 
+## Library API
+
+The package re-exports four functions from `logstats`:
+
+- `stream_lines(source: str, client: httpx.AsyncClient) -> AsyncIterator[str]`: yields raw lines from an HTTP(S) URL or a local path.
+- `parse_line(line: str, level: LogType | None) -> LogEntry | None`: parses one line; returns `None` when the line is invalid or filtered out by `level`.
+- `compute_top(entries: Iterable[LogEntry], source: str, *, level: LogType | None, top: int) -> TopStats`: returns the `top` most frequent messages and the total count.
+- `compute_per_hour(entries: Iterable[LogEntry], source: str, *, level: LogType | None) -> HourlyStats`: returns entry counts bucketed by date and hour.
+
 ## HTTP API
 
 ### Configuring sources
