@@ -19,7 +19,14 @@ def to_json(counter: Counter[ShardKey]) -> str:
 def from_json(text: str) -> Counter[ShardKey]:
     rows = json.loads(text)
     counter: Counter[ShardKey] = Counter()
-    for level_value, message, n in rows:
+    for index, row in enumerate(rows):
+        if not isinstance(row, list) or len(row) != 3:
+            raise ValueError(f"row {index}: expected [level, message, count]")
+        level_value, message, n = row
+        if not isinstance(message, str):
+            raise ValueError(f"row {index}: message must be str")
+        if not isinstance(n, int) or isinstance(n, bool) or n < 0:
+            raise ValueError(f"row {index}: count must be int >= 0")
         counter[(LogType(level_value), message)] += n
     return counter
 
