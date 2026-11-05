@@ -19,6 +19,9 @@ class Report:
         header = self.build_header()
         return "\n".join([header, *self.lines] if header else self.lines)
 
+    def to_dict(self) -> dict[str, str | list[str]]:
+        return {"source": self.source, "header": self.header, "lines": self.lines}
+
 
 def format_top(stats: TopStats) -> Report:
     return Report(

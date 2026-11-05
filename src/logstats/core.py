@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 from collections.abc import Sequence
 from functools import partial
@@ -41,14 +42,19 @@ def main(
     top: int | None,
     per_hour: bool,
     combined: bool,
+    as_json: bool = False,
 ) -> None:
     request = ReportRequest(level, top, per_hour, combined)
     fetched_sources = asyncio.run(fetch(sources, request.level))
+    reports: list[Report] = []
     if len(fetched_sources) == 0:
         logger.warning("No available sources.")
-        return
-    if all(not fs.entries for fs in fetched_sources):
+    elif all(not fs.entries for fs in fetched_sources):
         logger.info("No logs available with the selected filters.")
+    else:
+        reports = create_reports(fetched_sources, request)
+    if as_json:
+        print(json.dumps([r.to_dict() for r in reports]))
         return
-    for report in create_reports(fetched_sources, request):
+    for report in reports:
         print(report)

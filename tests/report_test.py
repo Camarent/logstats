@@ -14,6 +14,15 @@ def test_report_str_without_header():
     assert str(Report("", "", ["a", "b"])) == "a\nb"
 
 
+def test_report_to_dict():
+    report = Report("app1.log", "head", ["a", "b"])
+    assert report.to_dict() == {
+        "source": "app1.log",
+        "header": "head",
+        "lines": ["a", "b"],
+    }
+
+
 @pytest.fixture
 def sample_logs():
     return [
