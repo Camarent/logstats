@@ -1,6 +1,6 @@
 FROM python:3.12-slim
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.11.23 /uv /usr/local/bin/uv
 
 WORKDIR /app
 ENV UV_COMPILE_BYTECODE=1 \
@@ -16,5 +16,8 @@ RUN chmod +x docker-entrypoint.sh
 
 COPY sources.toml ./
 ENV LOGSTATS_SOURCES=/app/sources.toml
+
+RUN useradd -r -u 10001 app
+USER app
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]

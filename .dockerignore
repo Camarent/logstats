@@ -9,3 +9,9 @@
 dist
 __pycache__
 tests
+.audits
+.notes
+.claude
+.env*
+coverage.xml
+*.log
