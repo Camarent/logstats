@@ -66,7 +66,9 @@ def test_merge_top1_differs_from_each_shard_top1():
 
 def test_from_json_accepts_valid_rows():
     text = json.dumps([[3, "a", 2], [3, "b", 0]])
-    assert from_json(text) == Counter({(LogType.ERROR, "a"): 2, (LogType.ERROR, "b"): 0})
+    assert from_json(text) == Counter(
+        {(LogType.ERROR, "a"): 2, (LogType.ERROR, "b"): 0}
+    )
 
 
 @pytest.mark.parametrize(
